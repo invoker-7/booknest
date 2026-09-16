@@ -7,7 +7,7 @@
 > **DEMO ONLY** — ระบบนี้ไม่รับชำระเงินจริง ไม่เชื่อม Payment Gateway
 > ไม่เก็บข้อมูลบัตร และไม่มีการเรียกเก็บเงินใด ๆ
 
-Stack: Next.js 14 (App Router) · Supabase (Postgres + Storage) · Resend · Vercel · MIT App Inventor
+Stack: Next.js 14 (App Router) · Supabase (Postgres + Storage) · Gmail SMTP · Vercel · MIT App Inventor
 
 ---
 
@@ -54,20 +54,21 @@ SUPABASE_EBOOK_BUCKET=ebooks
 
 ---
 
-## 3. ตั้งค่าอีเมล (Resend)
+## 3. ตั้งค่าอีเมล (Gmail SMTP)
 
-1. สมัคร [resend.com](https://resend.com) → **API Keys** → สร้างคีย์
-2. ใส่ใน `.env.local`
+1. เปิด Google Account → **Security** → เปิด **2-Step Verification**
+2. ไปที่ **App passwords** → สร้างรหัสชื่อ `BookNest`
+3. ใส่ค่าที่ได้ใน `.env.local`
 
 ```
-RESEND_API_KEY=re_xxxx
-EMAIL_FROM=BookNest <onboarding@resend.dev>
+SMTP_USER=your.gmail@gmail.com
+SMTP_PASS=xxxx xxxx xxxx xxxx
+EMAIL_FROM=BookNest <your.gmail@gmail.com>
 ```
 
-**ข้อควรระวัง** ถ้ายังไม่ได้ยืนยันโดเมนของตัวเอง โดเมนทดสอบ `onboarding@resend.dev`
-จะส่งได้เฉพาะอีเมลที่ใช้สมัครบัญชี Resend เท่านั้น — อย่าทดสอบด้วยอีเมลของคนอื่น
+`SMTP_PASS` คือ App Password 16 ตัว ไม่ใช่รหัสผ่าน Gmail ปกติ
 
-**ถ้ายังไม่ตั้ง `RESEND_API_KEY`** ระบบจะทำงานในโหมดจำลอง: บันทึกว่าส่งอีเมลสำเร็จ
+**ถ้ายังไม่ตั้ง `SMTP_USER` หรือ `SMTP_PASS`** ระบบจะทำงานในโหมดจำลอง: บันทึกว่าส่งอีเมลสำเร็จ
 และแสดงผลบนหน้าจอ ซึ่งใบงานอนุญาตไว้ว่า *"หรือแสดงการส่งอีเมลสำเร็จสำหรับการทดสอบ"*
 
 ---
@@ -169,7 +170,7 @@ app/
 components/                     UI ทั้งหมด (client components)
 lib/
   supabase.js                   ฝั่ง server เท่านั้น
-  email.js                      Resend + โหมดจำลอง
+  email.js                      Gmail SMTP + โหมดจำลอง
   i18n.js                       คำแปล ไทย/อังกฤษ
   format.js                     เงิน วันที่ มาสก์อีเมล
 supabase/schema.sql             SQL ทั้งหมด
