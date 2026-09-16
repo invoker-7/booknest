@@ -71,7 +71,7 @@ export function SetupNotice() {
       <div className="note warn">
         SUPABASE_URL · SUPABASE_SECRET_KEY · SUPABASE_EBOOK_BUCKET
         <br />
-        RESEND_API_KEY · EMAIL_FROM
+        SMTP_USER · SMTP_PASS · EMAIL_FROM
       </div>
     </div>
   );

@@ -19,7 +19,7 @@ export default function SuccessView({ order, book }) {
 
   const shownEmail = me?.email || order.masked_email;
   const delivered = order.email_sent;
-  const mocked = order.email_note?.includes("RESEND_API_KEY");
+  const mocked = order.email_note?.includes("SMTP_USER") || order.email_note?.includes("SMTP_PASS");
 
   async function getLink() {
     if (!me?.email) return;

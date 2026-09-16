@@ -52,7 +52,13 @@ export async function POST(_req, { params }) {
   await db.from("orders").update({ status: "PROCESSING" }).eq("order_no", orderNo);
 
   // 3) สร้างลิงก์ชั่วคราวจากบั๊กเก็ต private (24 ชั่วโมง)
-  const { url: downloadUrl } = await createDownloadLink(order.book.file_path);
+  let downloadUrl = null;
+  try {
+    const result = await createDownloadLink(order.book.file_path);
+    downloadUrl = result.url;
+  } catch (err) {
+    console.error("download link:", err);
+  }
 
   // 4) ส่งอีเมล
   const mail = await sendDownloadEmail({
