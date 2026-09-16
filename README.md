@@ -40,7 +40,7 @@ npm run dev                    # http://localhost:3000
 4. ไป **Project Settings → API** คัดลอกใส่ `.env.local`
 
 ```
-NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+SUPABASE_URL=https://xxxx.supabase.co
 SUPABASE_SECRET_KEY=sb_secret_xxxx      # หรือ service_role key
 SUPABASE_EBOOK_BUCKET=ebooks
 ```

@@ -69,7 +69,7 @@ export function SetupNotice() {
       </div>
       <div className="spacer" />
       <div className="note warn">
-        NEXT_PUBLIC_SUPABASE_URL · SUPABASE_SECRET_KEY · SUPABASE_EBOOK_BUCKET
+        SUPABASE_URL · SUPABASE_SECRET_KEY · SUPABASE_EBOOK_BUCKET
         <br />
         RESEND_API_KEY · EMAIL_FROM
       </div>
