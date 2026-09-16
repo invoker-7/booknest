@@ -14,9 +14,17 @@ export default function StoreView({ books }) {
   const query = q.trim().toLowerCase();
   const list = books.filter((b) => {
     if (!query) return true;
+    const searchableText = [
+      b.title_th,
+      b.title_en,
+      b.short_th,
+      b.short_en,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
     return (
-      pick(b, "title", lang).toLowerCase().includes(query) ||
-      pick(b, "short", lang).toLowerCase().includes(query)
+      searchableText.includes(query)
     );
   });
 

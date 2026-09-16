@@ -102,8 +102,8 @@ function Splash() {
     } catch {}
     if (seen) return;
     setPhase("show");
-    const a = setTimeout(() => setPhase("hide"), 1500);
-    const b = setTimeout(() => setPhase("gone"), 2050);
+    const a = setTimeout(() => setPhase("hide"), 450);
+    const b = setTimeout(() => setPhase("gone"), 700);
     return () => { clearTimeout(a); clearTimeout(b); };
   }, []);
 

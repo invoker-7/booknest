@@ -3,7 +3,7 @@ import { getBook, isSupabaseConfigured } from "@/lib/supabase";
 import BookView from "@/components/views/BookView";
 import { SetupNotice } from "@/components/Pieces";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function BookPage({ params }) {
   if (!isSupabaseConfigured) return <SetupNotice />;
