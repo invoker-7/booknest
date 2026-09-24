@@ -7,7 +7,7 @@ function Clean({ title }) {
   return (
     <svg viewBox="0 0 120 160" role="img" aria-label={title}>
       <rect width="120" height="160" fill="#31455A" />
-      <circle cx="86" cy="36" r="13" fill="#F0C9A0" opacity=".9" />
+      <circle cx="96" cy="70" r="10" fill="#F0C9A0" opacity=".9" />
       <path d="M0 112l30-34 22 24 20-26 48 44v40H0z" fill="#587187" />
       <path d="M0 132l26-26 24 20 26-22 44 34v22H0z" fill="#7D96A8" />
       <path d="M0 146l34-16 30 12 26-12 30 14v16H0z" fill="#A9BCC7" />

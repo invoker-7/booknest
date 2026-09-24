@@ -3,9 +3,9 @@ import { LangProvider } from "@/components/LangProvider";
 import Shell from "@/components/Shell";
 
 export const metadata = {
-  title: "BookNest — Good Books, Better You",
+  title: "Digital Finder — Digital tools, better work.",
   description:
-    "ร้านอีบุ๊กสาธิต: เลือกหนังสือ สั่งซื้อ จำลองการชำระเงิน และรับลิงก์ดาวน์โหลดทางอีเมล (DEMO ONLY)",
+    "ร้านสินค้าดิจิทัลสาธิต: เลือกสินค้า สั่งซื้อ จำลองการชำระเงิน และรับลิงก์ดาวน์โหลดทางอีเมล (DEMO ONLY)",
 };
 
 export const viewport = {

@@ -50,6 +50,32 @@ export default function Shell({ children }) {
           dangerouslySetInnerHTML={{ __html: t("ribbon") }}
         />
 
+        <aside className="sidebar">
+          <div className="sidebar-brand">
+            <span className="brand-mark"><Logo /></span>
+            <span>Digital Finder</span>
+          </div>
+          <div className="sidebar-label">{t("ribbon").replace(/<[^>]+>/g, "")}</div>
+          <nav className="side-nav" aria-label="Primary navigation">
+            {TABS.map(({ href, key, Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                className={pathname === href ? "active" : undefined}
+                aria-current={pathname === href ? "page" : undefined}
+              >
+                <Icon />
+                <span>{t(key)}</span>
+              </Link>
+            ))}
+          </nav>
+          <div className="sidebar-footer">
+            <div className="sidebar-tip">{t("heroSub")}</div>
+            <LangToggle />
+          </div>
+        </aside>
+
+        <div className="app-content">
         <div className="topbar">
           {!isTab && !isResult && (
             <button className="iconbtn" onClick={() => router.back()} aria-label="Back">
@@ -60,7 +86,7 @@ export default function Shell({ children }) {
           {isHome ? (
             <div className="brand">
               <Logo />
-              <span>BookNest</span>
+              <span>Digital Finder</span>
             </div>
           ) : (
             <h1>{titleFor(pathname, t)}</h1>
@@ -85,6 +111,7 @@ export default function Shell({ children }) {
             ))}
           </nav>
         )}
+        </div>
       </div>
     </>
   );
@@ -98,12 +125,16 @@ function Splash() {
     let seen = true;
     try {
       seen = sessionStorage.getItem("bn.splash") === "1";
-      sessionStorage.setItem("bn.splash", "1");
     } catch {}
     if (seen) return;
     setPhase("show");
     const a = setTimeout(() => setPhase("hide"), 450);
-    const b = setTimeout(() => setPhase("gone"), 700);
+    // จดว่าเห็นแล้วตอนจบเท่านั้น — ถ้าจดตั้งแต่ต้น StrictMode (dev) จะรัน effect ซ้ำ
+    // แล้วรอบที่สองออกก่อนตั้ง timer ทำให้ splash ค้างบังทั้งหน้า
+    const b = setTimeout(() => {
+      setPhase("gone");
+      try { sessionStorage.setItem("bn.splash", "1"); } catch {}
+    }, 700);
     return () => { clearTimeout(a); clearTimeout(b); };
   }, []);
 
@@ -112,8 +143,8 @@ function Splash() {
   return (
     <div className={`splash${phase === "hide" ? " hide" : ""}`}>
       <div className="rise"><Logo size={54} /></div>
-      <h1 className="rise d1">BookNest</h1>
-      <p className="rise d2">Good Books, Better You</p>
+      <h1 className="rise d1">Digital Finder</h1>
+      <p className="rise d2">Digital tools, better work.</p>
       <div className="rise d3" style={{ marginTop: 30 }}>
         <svg width="200" height="120" viewBox="0 0 200 120" fill="none" aria-hidden="true">
           <ellipse cx="100" cy="108" rx="86" ry="9" fill="#F8DCC2" opacity=".6" />

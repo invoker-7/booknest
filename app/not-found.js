@@ -5,7 +5,7 @@ export default function NotFound() {
     <div className="empty">
       <p>404</p>
       <Link className="btn small" href="/" style={{ width: "auto", display: "inline-flex" }}>
-        BookNest
+        Digital Finder
       </Link>
     </div>
   );

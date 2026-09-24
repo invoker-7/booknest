@@ -24,8 +24,8 @@ export default function AboutView() {
           <Logo size={24} />
         </div>
         <div>
-          <div style={{ fontSize: 15, fontWeight: 600 }}>BookNest</div>
-          <div style={{ fontSize: 12.5, color: "var(--muted)" }}>Good Books, Better You</div>
+          <div style={{ fontSize: 15, fontWeight: 600 }}>Digital Finder</div>
+          <div style={{ fontSize: 12.5, color: "var(--muted)" }}>Digital tools, better work.</div>
         </div>
       </div>
 
