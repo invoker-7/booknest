@@ -608,3 +608,139 @@ hr.sep { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
   }
 }
 
+
+/* =========================================================
+   Soft Tech layer — ดิจิทัลแต่ยัง minimal
+   - ฟอนต์ Geist + IBM Plex Sans Thai, ตัวเลข/รหัสใช้ Geist Mono
+   - เส้นขอบบาง 1px แทนเงา, มุมโค้งน้อยลง
+   - ลายจุดตาราง (dot grid) บน hero, สัญลักษณ์ // หน้าหัวข้อ
+   ========================================================= */
+:root {
+  --font: "Geist", "IBM Plex Sans Thai", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --radius-s: 8px;
+  --radius: 10px;
+  --radius-l: 14px;
+  --shadow: 0 1px 2px rgba(20, 30, 25, .05);
+  --dot: color-mix(in srgb, var(--ink) 13%, transparent);
+}
+@media (min-width: 900px) {
+  :root { --font: "Geist", "IBM Plex Sans Thai", -apple-system, BlinkMacSystemFont, sans-serif; }
+}
+
+body { font-feature-settings: "ss01", "cv11"; }
+
+/* ตัวเลข ราคา รหัส และป้ายสถานะ ใช้ mono */
+.bookcard .price, .pricerow .now, .strike, .total dd, .ordno,
+.badge, .step .dot, .demobox .tag, .ribbon b, .langtoggle button,
+.timeline .tbody h4, .code404, .chip, .kbd, .eyebrow {
+  font-family: var(--mono);
+  font-feature-settings: "zero", "tnum";
+}
+.pricerow .now { letter-spacing: -.04em; }
+
+/* ป้ายเล็กสไตล์ระบบ */
+.eyebrow {
+  display: block; margin-bottom: 8px;
+  font-size: 10.5px; font-weight: 500; letter-spacing: .12em; color: var(--orange);
+}
+.chip {
+  display: inline-block; margin-left: 6px; padding: 1px 6px;
+  border: 1px solid var(--line); border-radius: 4px;
+  font-size: 9.5px; font-weight: 500; color: var(--muted); letter-spacing: .02em;
+  vertical-align: 1px;
+}
+.kbd {
+  flex: none; min-width: 20px; height: 20px; padding: 0 6px;
+  display: grid; place-items: center;
+  border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px;
+  font-size: 11px; color: var(--muted); background: var(--surface-2);
+}
+@media (hover: none) { .kbd { display: none; } }
+/* มือถือ grid แคบ: ซ่อนป้ายไฟล์ในการ์ด (ยังเห็นในหน้ารายละเอียด) */
+@media (max-width: 899px) { .bookcard .chip { display: none; } }
+.code404 { font-size: 44px !important; font-weight: 500; color: var(--ink); letter-spacing: -.04em; }
+.code404::before { content: "// "; color: var(--orange); }
+
+/* หัวข้อ section: // ข้างหน้าแบบคอมเมนต์โค้ด */
+.section-head h3::before {
+  content: "//"; margin-right: 8px;
+  font-family: var(--mono); font-weight: 500; color: var(--orange);
+}
+
+/* hero: dot grid บนพื้นไล่สีเดิม */
+.hero {
+  position: relative;
+  background-image:
+    radial-gradient(var(--dot) 1px, transparent 1.3px),
+    linear-gradient(135deg, var(--peach), var(--orange-soft));
+  background-size: 14px 14px, auto;
+}
+.hero-txt h2 { letter-spacing: -.025em; }
+
+/* การ์ดสินค้า: เส้นขอบแทนเงา, hover แล้วขอบเป็นสีส้ม */
+.bookcard .cover {
+  box-shadow: none; border: 1px solid var(--line);
+  transition: transform .18s, border-color .18s, box-shadow .18s;
+}
+.bookcard:hover .cover {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 3px var(--orange-soft);
+}
+.bookcard h4 { letter-spacing: -.01em; }
+.detailcover { box-shadow: none; border: 1px solid var(--line); }
+.row .thumb { box-shadow: none; border: 1px solid var(--line); }
+.row { transition: border-color .18s; }
+a.row:hover { border-color: var(--orange); }
+
+/* ช่องค้นหา / ฟอร์ม: โฟกัสแล้วมีวงแหวนบางๆ */
+.search { transition: border-color .15s, box-shadow .15s; }
+.search:focus-within { border-color: var(--orange); box-shadow: 0 0 0 3px var(--orange-soft); }
+
+/* ปุ่มหลัก: แบนราบ มีเส้นไฮไลต์บนบางๆ */
+.btn { box-shadow: inset 0 1px 0 rgba(255,255,255,.18); letter-spacing: -.01em; }
+.btn.ghost { box-shadow: none; }
+
+/* ป้ายเล็กทั้งหลายเป็นสี่เหลี่ยมมุมมน ไม่ใช่แคปซูล */
+.badge { border-radius: 5px; letter-spacing: .02em; }
+.langtoggle { border-radius: 8px; }
+.langtoggle button { letter-spacing: 0; }
+
+/* เดสก์ท็อป */
+@media (min-width: 900px) {
+  :root {
+    --radius-s: 8px;
+    --shadow: 0 1px 2px rgba(20, 30, 25, .05);
+  }
+  .hero {
+    background-image:
+      radial-gradient(var(--dot) 1px, transparent 1.3px),
+      linear-gradient(112deg, var(--hero-from) 0%, var(--hero-to) 100%);
+    background-size: 16px 16px, auto;
+  }
+  .hero-txt h2 { font-size: 34px; line-height: 1.15; font-weight: 600; max-width: 460px; }
+  .bookcard .cover { box-shadow: none; }
+  .bookcard .price { display: flex; align-items: center; justify-content: space-between; }
+  .side-nav a { position: relative; }
+  .side-nav a.active::before {
+    content: ""; position: absolute; left: -18px; top: 10px; bottom: 10px;
+    width: 3px; border-radius: 0 3px 3px 0; background: #ef7442;
+  }
+  .side-nav a:hover, .side-nav a.active { background: rgba(255,255,255,.08); }
+  .sidebar-brand { letter-spacing: -.04em; }
+
+  /* หน้ารายละเอียดสินค้า: ปกซ้าย ข้อมูลขวา */
+  .pad:has(> .detailcover) {
+    max-width: 1000px;
+    display: grid; grid-template-columns: 300px minmax(0, 1fr);
+    column-gap: 56px; align-content: start;
+  }
+  .pad:has(> .detailcover) > * { grid-column: 2; }
+  .pad:has(> .detailcover) > .detailcover {
+    grid-column: 1; grid-row: 1 / span 12; width: 100%; margin: 0;
+    position: sticky; top: 110px; align-self: start;
+  }
+  .pad:has(> .detailcover) > .h2 { font-size: 30px; letter-spacing: -.03em; margin-top: 4px; }
+  .pad:has(> .detailcover) ~ .sticky-cta { max-width: 1000px; }
+  .pad:has(> .detailcover) ~ .sticky-cta .btn { margin-left: calc(300px + 56px); max-width: 360px; }
+}

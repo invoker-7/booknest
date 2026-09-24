@@ -57,7 +57,7 @@ export default function PayView({ order, book }) {
               padding: "0 0 12px", borderBottom: "1px solid var(--line)",
             }}
           >
-            <div className="thumb"><Cover cover={book.cover} title={title} /></div>
+            <div className="thumb"><Cover cover={book.cover} kind={book.kind} title={title} /></div>
             <div className="body">
               <h4>{title}</h4>
               <p>{money(order.amount, lang)}</p>

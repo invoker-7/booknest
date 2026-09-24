@@ -15,7 +15,7 @@ export default function BookView({ book }) {
     <>
       <div className="pad">
         <div className="detailcover">
-          <Cover cover={book.cover} title={title} />
+          <Cover cover={book.cover} kind={book.kind} title={title} />
         </div>
 
         <h2 className="h2">{title}</h2>

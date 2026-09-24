@@ -99,7 +99,7 @@ export default function TrackView() {
           </div>
 
           <div className="row" style={{ margin: 0, border: "none", padding: 0, background: "none" }}>
-            <div className="thumb"><Cover cover={order.book.cover} title={title} /></div>
+            <div className="thumb"><Cover cover={order.book.cover} kind={order.book.kind} title={title} /></div>
             <div className="body">
               <h4>{title}</h4>
               <p>{money(order.amount, lang)}</p>

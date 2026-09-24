@@ -94,7 +94,7 @@ export default function CheckoutView({ book }) {
         <div className="card">
           <h3>{t("summary")}</h3>
           <div className="row" style={{ margin: 0, border: "none", padding: 0, background: "none" }}>
-            <div className="thumb"><Cover cover={book.cover} title={title} /></div>
+            <div className="thumb"><Cover cover={book.cover} kind={book.kind} title={title} /></div>
             <div className="body">
               <h4>{title}</h4>
               <p>{money(book.price, lang)} · PDF</p>

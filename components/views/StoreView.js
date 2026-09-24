@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLang } from "@/components/LangProvider";
 import Cover from "@/components/Cover";
 import { Search, Track, Arrow } from "@/components/Icons";
@@ -10,6 +10,20 @@ import { money, pick } from "@/lib/format";
 export default function StoreView({ books }) {
   const { t, lang } = useLang();
   const [q, setQ] = useState("");
+  const searchRef = useRef(null);
+
+  // กด / เพื่อไปที่ช่องค้นหา (เหมือนเว็บเครื่องมือของนักพัฒนา)
+  useEffect(() => {
+    function onKey(e) {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const tag = document.activeElement?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      e.preventDefault();
+      searchRef.current?.focus();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const query = q.trim().toLowerCase();
   const list = books.filter((b) => {
@@ -33,17 +47,20 @@ export default function StoreView({ books }) {
       <div className="search">
         <Search />
         <input
+          ref={searchRef}
           type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder={t("searchPh")}
           aria-label={t("searchPh")}
         />
+        <kbd className="kbd" aria-hidden="true">/</kbd>
       </div>
 
       {!query && (
         <div className="hero">
           <div className="hero-txt">
+            <span className="eyebrow">{t("heroEyebrow")}</span>
             <h2>{t("heroTitle")}</h2>
             <p>{t("heroSub")}</p>
           </div>
@@ -69,10 +86,13 @@ export default function StoreView({ books }) {
           {list.map((b) => (
             <Link className="bookcard" href={`/book/${b.id}`} key={b.id}>
               <div className="cover">
-                <Cover cover={b.cover} title={pick(b, "title", lang)} />
+                <Cover cover={b.cover} kind={b.kind} title={pick(b, "title", lang)} />
               </div>
               <h4>{pick(b, "title", lang)}</h4>
-              <p className="price">{money(b.price, lang)}</p>
+              <p className="price">
+                {money(b.price, lang)}
+                {b.file_size && <span className="chip">PDF · {b.file_size}</span>}
+              </p>
             </Link>
           ))}
         </div>
