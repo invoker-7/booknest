@@ -1,0 +1,59 @@
+import type { Metadata, Viewport } from "next";
+import type { ReactNode } from "react";
+import { IBM_Plex_Mono, IBM_Plex_Sans, IBM_Plex_Sans_Thai } from "next/font/google";
+import "./globals.css";
+import { LangProvider } from "@/components/LangProvider";
+import { StoreProvider } from "@/components/StoreProvider";
+import Shell from "@/components/Shell";
+
+// ฟอนต์ถูกดาวน์โหลดตอน build และเสิร์ฟจากโดเมนเดียวกัน (ไม่มี request ไป Google ตอนใช้งาน)
+const sans = IBM_Plex_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-sans",
+  display: "swap",
+});
+const thai = IBM_Plex_Sans_Thai({
+  subsets: ["thai"],
+  weight: ["400", "500", "600"],
+  variable: "--font-thai",
+  display: "swap",
+});
+const mono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-mono",
+  display: "swap",
+});
+
+export const metadata: Metadata = {
+  title: {
+    default: "VECTOR — Digital resources for people who build.",
+    template: "%s · VECTOR",
+  },
+  description:
+    "Templates, systems and tools engineered for real work. Notion systems, UI kits, developer tools and technical guides. (Demo build — no real payments.)",
+  applicationName: "VECTOR",
+  appleWebApp: { capable: true, title: "VECTOR", statusBarStyle: "default" },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#F4F3EF",
+};
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="th" className={`${sans.variable} ${thai.variable} ${mono.variable}`}>
+      <body>
+        <LangProvider>
+          <StoreProvider>
+            <Shell>{children}</Shell>
+          </StoreProvider>
+        </LangProvider>
+      </body>
+    </html>
+  );
+}

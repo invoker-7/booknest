@@ -26,8 +26,8 @@
   --amber-soft: #F5EBD3;
   --focus: #1F3A68;
 
-  --sans: "IBM Plex Sans", "IBM Plex Sans Thai", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --mono: "IBM Plex Mono", "IBM Plex Sans Thai", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans: var(--font-sans), var(--font-thai), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --mono: var(--font-mono), var(--font-thai), ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --wrap: 1320px;
   --gut: 32px;
@@ -55,6 +55,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; border: 0; background: none; padding: 0; }
 a { color: inherit; text-decoration: none; }
 svg { display: block; flex: none; }
+.plate text, .hero-art text { font-family: var(--mono); }
 img { max-width: 100%; display: block; }
 s { text-decoration-thickness: 1px; }
 
