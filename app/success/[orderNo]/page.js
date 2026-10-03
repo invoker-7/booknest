@@ -1,10 +1,12 @@
 import { notFound, redirect } from "next/navigation";
 import { getOrder, isSupabaseConfigured } from "@/lib/supabase";
 import SuccessView from "@/components/views/SuccessView";
-import { SetupNotice } from "@/components/Pieces";
+import { SetupNotice } from "@/components/ui";
 import { maskEmail } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
+// สถานะคำสั่งซื้อต้องสดเสมอ ห้ามให้ Next เก็บผล fetch ของ Supabase ไว้ใน data cache
+export const fetchCache = "force-no-store";
 
 export default async function SuccessPage({ params }) {
   if (!isSupabaseConfigured) return <SetupNotice />;

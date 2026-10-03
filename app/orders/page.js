@@ -1,5 +1,6 @@
-import LocalOrdersView from "@/components/views/LocalOrdersView";
+import { redirect } from "next/navigation";
 
+// "คำสั่งซื้อในเครื่องนี้" ย้ายไปรวมอยู่ในคลังของฉัน
 export default function OrdersPage() {
-  return <LocalOrdersView />;
+  redirect("/library");
 }

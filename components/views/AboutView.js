@@ -1,73 +1,63 @@
 "use client";
 
+import Link from "next/link";
 import { useLang } from "@/components/LangProvider";
 import { LangToggle } from "@/components/Shell";
-import { Logo } from "@/components/Icons";
+import { TextLink } from "@/components/ui";
+import { FAQ } from "@/lib/catalog";
 
 export default function AboutView() {
-  const { t, theme, setTheme } = useLang();
-  const themes = [
-    ["auto", "themeAuto"],
-    ["light", "themeLight"],
-    ["dark", "themeDark"],
-  ];
-
+  const { t } = useLang();
   return (
-    <div className="pad">
-      <div className="card" style={{ display: "flex", gap: 13, alignItems: "center" }}>
-        <div
-          style={{
-            width: 48, height: 48, borderRadius: 14, background: "var(--peach)",
-            display: "grid", placeItems: "center", flex: "none",
-          }}
-        >
-          <Logo size={24} />
-        </div>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 600 }}>Digital Finder</div>
-          <div style={{ fontSize: 12.5, color: "var(--muted)" }}>Digital tools, better work.</div>
-        </div>
-      </div>
+    <div className="wrap">
+      <header className="phead">
+        <ol className="crumbs">
+          <li><Link href="/">VECTOR</Link></li>
+          <li aria-current="page">{t("about")}</li>
+        </ol>
+        <h1>{t("aboutTitle")}</h1>
+        <p>{t("aboutBody")}</p>
+      </header>
 
-      <div className="card">
-        <h3>{t("about")}</h3>
-        <p className="sub" style={{ margin: 0, lineHeight: 1.7 }}>{t("aboutBody")}</p>
-      </div>
-
-      <div className="card">
-        <h3>{t("limits")}</h3>
-        <ul style={{ margin: 0, paddingLeft: 18, color: "var(--ink-2)", fontSize: 13.5, lineHeight: 1.8 }}>
-          <li>{t("limit1")}</li>
-          <li>{t("limit2")}</li>
-          <li>{t("limit3")}</li>
-          <li>{t("limit4")}</li>
-        </ul>
-      </div>
-
-      <div className="card">
-        <h3>{t("language")} · {t("theme")}</h3>
-        <div
-          style={{
-            display: "flex", justifyContent: "space-between",
-            alignItems: "center", gap: 12, paddingBottom: 12,
-          }}
-        >
-          <span style={{ fontSize: 13.5, color: "var(--ink-2)" }}>{t("language")}</span>
-          <LangToggle />
+      <section className="doc" style={{ borderTop: 0, paddingTop: 48 }} aria-labelledby="about-limits">
+        <div className="doc-label">
+          <b>01 — Limits</b>
+          <h2 id="about-limits">{t("limits")}</h2>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-          <span style={{ fontSize: 13.5, color: "var(--ink-2)" }}>{t("theme")}</span>
-          <div className="filters" style={{ margin: 0 }}>
-            {themes.map(([k, label]) => (
-              <button key={k} onClick={() => setTheme(k)} aria-pressed={theme === k}>
-                {t(label)}
-              </button>
+        <div className="doc-body">
+          <ol className="about-list">
+            {[1, 2, 3, 4].map((n) => <li key={n}>{t(`limit${n}`)}</li>)}
+          </ol>
+        </div>
+      </section>
+
+      <section className="doc" aria-labelledby="about-faq">
+        <div className="doc-label">
+          <b>02 — FAQ</b>
+          <h2 id="about-faq">{t("faq")}</h2>
+        </div>
+        <div className="doc-body">
+          <div className="faq">
+            {FAQ.map((k) => (
+              <details key={k}>
+                <summary>{t(`${k}Q`)} <span className="pm" aria-hidden="true" /></summary>
+                <p>{t(`${k}A`)}</p>
+              </details>
             ))}
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="spacer" />
+      <section className="doc" aria-labelledby="about-lang">
+        <div className="doc-label">
+          <b>03 — Settings</b>
+          <h2 id="about-lang">{t("language")}</h2>
+        </div>
+        <div className="doc-body">
+          <LangToggle />
+          <div style={{ marginTop: 24 }}><TextLink href="/products">{t("heroCta")}</TextLink></div>
+        </div>
+      </section>
     </div>
   );
 }

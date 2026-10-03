@@ -2,161 +2,293 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLang } from "./LangProvider";
-import { Back, Home, Orders, Track, Info, Logo } from "./Icons";
+import { useStore } from "./StoreProvider";
+import { Search, Cart, Menu, Close, Home, Box, Library, Archive, Arrow, Mark, Check } from "./Icons";
 
-export function LangToggle() {
-  const { lang, setLang } = useLang();
+export function LangToggle({ className = "" }) {
+  const { lang, setLang, t } = useLang();
   return (
-    <div className="langtoggle" role="group" aria-label="Language">
-      <button onClick={() => setLang("th")} aria-pressed={lang === "th"}>ไทย</button>
-      <button onClick={() => setLang("en")} aria-pressed={lang === "en"}>EN</button>
+    <div className={`langtoggle mono ${className}`} role="group" aria-label={t("language")}>
+      <button type="button" onClick={() => setLang("th")} aria-pressed={lang === "th"}>TH</button>
+      <span aria-hidden="true">/</span>
+      <button type="button" onClick={() => setLang("en")} aria-pressed={lang === "en"}>EN</button>
     </div>
   );
 }
 
-const TABS = [
-  { href: "/", key: "tabHome", Icon: Home },
-  { href: "/orders", key: "tabOrders", Icon: Orders },
-  { href: "/track", key: "tabTrack", Icon: Track },
-  { href: "/about", key: "tabAbout", Icon: Info },
+const NAV = [
+  { href: "/products", key: "navProducts" },
+  { href: "/creators", key: "navCreators" },
+  { href: "/archive", key: "navArchive" },
 ];
 
-function titleFor(pathname, t) {
-  if (pathname.startsWith("/checkout")) return t("checkout");
-  if (pathname.startsWith("/pay")) return t("confirmTitle");
-  if (pathname.startsWith("/orders")) return t("myOrders");
-  if (pathname.startsWith("/track")) return t("track");
-  if (pathname.startsWith("/about")) return t("about");
-  return "";
+const TABS = [
+  { href: "/", key: "navHome", Icon: Home },
+  { href: "/products", key: "navProducts", Icon: Box },
+  { href: "/archive", key: "navArchive", Icon: Archive },
+  { href: "/library", key: "navLibrary", Icon: Library },
+];
+
+// หน้าที่มีแถบปุ่มหลักติดล่างจอของตัวเอง ไม่ต้องแสดงแท็บบาร์มือถือ
+const NO_TABBAR = ["/product/", "/cart", "/checkout", "/pay/", "/receipt"];
+
+const isActive = (pathname, href) =>
+  href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
+
+function Wordmark() {
+  return (
+    <Link href="/" className="wordmark" aria-label="VECTOR — home">
+      <Mark />
+      <span>VECTOR</span>
+    </Link>
+  );
+}
+
+function CartLink({ withLabel }) {
+  const { t } = useLang();
+  const { cart, ready } = useStore();
+  const n = ready ? cart.length : 0;
+  return (
+    <Link href="/cart" className="hdr-action" aria-label={`${t("navCart")} (${n})`}>
+      <Cart />
+      {withLabel && <span className="hdr-label">{t("navCart")}</span>}
+      <span className={`count mono${n ? "" : " zero"}`}>{n}</span>
+    </Link>
+  );
+}
+
+function SearchPanel({ open, onClose }) {
+  const { t } = useLang();
+  const router = useRouter();
+  const [q, setQ] = useState("");
+  const input = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    input.current?.focus();
+    const onKey = (e) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  if (!open) return null;
+  return (
+    <div className="searchpanel" role="dialog" aria-modal="false" aria-label={t("navSearch")}>
+      <form
+        className="wrap searchpanel-form"
+        role="search"
+        onSubmit={(e) => {
+          e.preventDefault();
+          onClose();
+          router.push(q.trim() ? `/products?q=${encodeURIComponent(q.trim())}` : "/products");
+        }}
+      >
+        <Search size={24} />
+        <label htmlFor="global-search" className="sr-only">{t("searchLabel")}</label>
+        <input
+          id="global-search"
+          ref={input}
+          type="search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder={t("searchPh")}
+          autoComplete="off"
+        />
+        <button type="submit" className="btn primary">{t("navSearch")}</button>
+        <button type="button" className="iconbtn" onClick={onClose} aria-label={t("navClose")}>
+          <Close />
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function MobileMenu({ open, onClose, pathname }) {
+  const { t } = useLang();
+  useEffect(() => {
+    if (!open) return;
+    document.body.classList.add("lock");
+    const onKey = (e) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.classList.remove("lock");
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+  const links = [...NAV, { href: "/library", key: "navLibrary" }, { href: "/cart", key: "navCart" }, { href: "/about", key: "about" }];
+  return (
+    <div className="mmenu" role="dialog" aria-modal="true" aria-label={t("navMenu")} id="mobile-menu">
+      <nav aria-label="Mobile">
+        <ol>
+          {links.map(({ href, key }, i) => (
+            <li key={href}>
+              <Link href={href} onClick={onClose} aria-current={isActive(pathname, href) ? "page" : undefined}>
+                <span className="mono">{String(i + 1).padStart(2, "0")}</span>
+                <span>{t(key)}</span>
+                <Arrow />
+              </Link>
+            </li>
+          ))}
+        </ol>
+      </nav>
+      <div className="mmenu-foot">
+        <span className="mono">{t("language")}</span>
+        <LangToggle />
+      </div>
+    </div>
+  );
+}
+
+function Toast() {
+  const { toast } = useStore();
+  const { t } = useLang();
+  return (
+    <div className="toast-region" aria-live="polite">
+      {toast && (
+        <div className="toast">
+          <Check size={16} />
+          <span>{toast}</span>
+          <Link href="/cart" className="toast-link">{t("viewCart")}</Link>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Footer() {
+  const { t } = useLang();
+  return (
+    <footer className="footer">
+      <div className="wrap">
+        <div className="footer-top">
+          <div className="footer-brand">
+            <Wordmark />
+            <p>{t("tagline")}</p>
+          </div>
+          <nav aria-label={t("footerShop")}>
+            <h2 className="mono">{t("footerShop")}</h2>
+            <ul>
+              <li><Link href="/products">{t("navProducts")}</Link></li>
+              <li><Link href="/creators">{t("navCreators")}</Link></li>
+              <li><Link href="/archive">{t("navArchive")}</Link></li>
+            </ul>
+          </nav>
+          <nav aria-label={t("footerHelp")}>
+            <h2 className="mono">{t("footerHelp")}</h2>
+            <ul>
+              <li><Link href="/library">{t("navLibrary")}</Link></li>
+              <li><Link href="/cart">{t("navCart")}</Link></li>
+              <li><Link href="/about">{t("about")}</Link></li>
+            </ul>
+          </nav>
+          <div>
+            <h2 className="mono">{t("language")}</h2>
+            <LangToggle className="on-dark" />
+          </div>
+        </div>
+        <div className="footer-bottom mono">
+          <span>© 2026 VECTOR</span>
+          <span>{t("footerNote")}</span>
+        </div>
+      </div>
+    </footer>
+  );
 }
 
 export default function Shell({ children }) {
   const pathname = usePathname() || "/";
-  const router = useRouter();
   const { t } = useLang();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  const isTab = TABS.some((x) => x.href === pathname);
-  const isHome = pathname === "/";
-  const isResult = pathname.startsWith("/success");
+  // ปิดเมนูเมื่อเปลี่ยนหน้า
+  useEffect(() => {
+    setMenuOpen(false);
+    setSearchOpen(false);
+  }, [pathname]);
+
+  const showTabbar = !NO_TABBAR.some((p) => pathname.startsWith(p));
 
   return (
     <>
-      <Splash />
-      <div className="shell">
-        <div
-          className="ribbon"
-          dangerouslySetInnerHTML={{ __html: t("ribbon") }}
-        />
+      <a href="#main" className="skip">{t("skip")}</a>
 
-        <aside className="sidebar">
-          <div className="sidebar-brand">
-            <span className="brand-mark"><Logo /></span>
-            <span>Digital Finder</span>
-          </div>
-          <div className="sidebar-label">{t("ribbon").replace(/<[^>]+>/g, "")}</div>
-          <nav className="side-nav" aria-label="Primary navigation">
-            {TABS.map(({ href, key, Icon }) => (
-              <Link
-                key={href}
-                href={href}
-                className={pathname === href ? "active" : undefined}
-                aria-current={pathname === href ? "page" : undefined}
-              >
-                <Icon />
-                <span>{t(key)}</span>
+      <div className="utility mono">
+        <div className="wrap utility-row">
+          <span><span className="utility-dot" aria-hidden="true" /> {t("demoBar")}</span>
+          <LangToggle className="on-dark hide-sm" />
+        </div>
+      </div>
+
+      <header className="hdr">
+        <div className="wrap hdr-row">
+          <Wordmark />
+
+          <nav className="hdr-nav" aria-label="Primary">
+            {NAV.map(({ href, key }) => (
+              <Link key={href} href={href} aria-current={isActive(pathname, href) ? "page" : undefined}>
+                {t(key)}
               </Link>
             ))}
           </nav>
-          <div className="sidebar-footer">
-            <div className="sidebar-tip">{t("heroSub")}</div>
-            <LangToggle />
-          </div>
-        </aside>
 
-        <div className="app-content">
-        <div className="topbar">
-          {!isTab && !isResult && (
-            <button className="iconbtn" onClick={() => router.back()} aria-label="Back">
-              <Back />
+          <div className="hdr-actions">
+            <button
+              type="button"
+              className="hdr-action"
+              onClick={() => setSearchOpen((v) => !v)}
+              aria-expanded={searchOpen}
+              aria-label={t("navSearch")}
+            >
+              <Search />
+              <span className="hdr-label">{t("navSearch")}</span>
             </button>
-          )}
-
-          {isHome ? (
-            <div className="brand">
-              <Logo />
-              <span>Digital Finder</span>
-            </div>
-          ) : (
-            <h1>{titleFor(pathname, t)}</h1>
-          )}
-
-          <LangToggle />
+            <Link
+              href="/library"
+              className="hdr-action hide-sm"
+              aria-current={isActive(pathname, "/library") ? "page" : undefined}
+            >
+              <Library />
+              <span className="hdr-label">{t("navLibrary")}</span>
+            </Link>
+            <CartLink withLabel />
+            <button
+              type="button"
+              className="hdr-action show-sm"
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-expanded={menuOpen}
+              aria-controls="mobile-menu"
+              aria-label={menuOpen ? t("navClose") : t("navMenu")}
+            >
+              {menuOpen ? <Close /> : <Menu />}
+            </button>
+          </div>
         </div>
+        <SearchPanel open={searchOpen} onClose={() => setSearchOpen(false)} />
+      </header>
 
-        <main>{children}</main>
+      <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} pathname={pathname} />
 
-        {isTab && (
-          <nav className="tabbar">
-            {TABS.map(({ href, key, Icon }) => (
-              <Link
-                key={href}
-                href={href}
-                aria-current={pathname === href ? "page" : undefined}
-              >
-                <Icon />
-                <span>{t(key)}</span>
-              </Link>
-            ))}
-          </nav>
-        )}
-        </div>
-      </div>
+      <main id="main" className={showTabbar ? "has-tabbar" : ""}>{children}</main>
+
+      <Footer />
+
+      {showTabbar && (
+        <nav className="tabbar" aria-label="App">
+          {TABS.map(({ href, key, Icon }) => (
+            <Link key={href} href={href} aria-current={isActive(pathname, href) ? "page" : undefined}>
+              <Icon />
+              <span>{t(key)}</span>
+            </Link>
+          ))}
+        </nav>
+      )}
+
+      <Toast />
     </>
-  );
-}
-
-/** หน้าเปิดแอป แสดงครั้งเดียวต่อการเปิดเว็บหนึ่งรอบ (เหมาะกับ WebView ในมือถือ) */
-function Splash() {
-  const [phase, setPhase] = useState("idle"); // idle | show | hide | gone
-
-  useEffect(() => {
-    let seen = true;
-    try {
-      seen = sessionStorage.getItem("bn.splash") === "1";
-    } catch {}
-    if (seen) return;
-    setPhase("show");
-    const a = setTimeout(() => setPhase("hide"), 450);
-    // จดว่าเห็นแล้วตอนจบเท่านั้น — ถ้าจดตั้งแต่ต้น StrictMode (dev) จะรัน effect ซ้ำ
-    // แล้วรอบที่สองออกก่อนตั้ง timer ทำให้ splash ค้างบังทั้งหน้า
-    const b = setTimeout(() => {
-      setPhase("gone");
-      try { sessionStorage.setItem("bn.splash", "1"); } catch {}
-    }, 700);
-    return () => { clearTimeout(a); clearTimeout(b); };
-  }, []);
-
-  if (phase === "idle" || phase === "gone") return null;
-
-  return (
-    <div className={`splash${phase === "hide" ? " hide" : ""}`}>
-      <div className="rise"><Logo size={54} /></div>
-      <h1 className="rise d1">Digital Finder</h1>
-      <p className="rise d2">Digital tools, better work.</p>
-      <div className="rise d3" style={{ marginTop: 30 }}>
-        <svg width="200" height="120" viewBox="0 0 200 120" fill="none" aria-hidden="true">
-          <ellipse cx="100" cy="108" rx="86" ry="9" fill="#F8DCC2" opacity=".6" />
-          <rect x="42" y="82" width="116" height="16" rx="4" fill="#6E8F76" opacity=".85" />
-          <rect x="50" y="66" width="100" height="16" rx="4" fill="#E4703B" opacity=".8" />
-          <rect x="58" y="50" width="84" height="16" rx="4" fill="#F8DCC2" />
-          <path d="M100 50c0-14 8-24 20-28-4 13-9 21-20 28z" fill="#6E8F76" opacity=".7" />
-          <circle cx="128" cy="19" r="6" fill="#E4703B" opacity=".7" />
-          <path d="M100 50c0-10-6-18-15-21 3 9 7 15 15 21z" fill="#6E8F76" opacity=".5" />
-          <circle cx="82" cy="28" r="4.5" fill="#E4703B" opacity=".45" />
-        </svg>
-      </div>
-    </div>
   );
 }

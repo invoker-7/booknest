@@ -1,13 +1,11 @@
 import { notFound } from "next/navigation";
-import { getBook, isSupabaseConfigured } from "@/lib/supabase";
-import CheckoutView from "@/components/views/CheckoutView";
-import { SetupNotice } from "@/components/Pieces";
+import { loadProduct } from "@/lib/catalogServer";
+import BuyNow from "@/components/views/BuyNow";
 
 export const dynamic = "force-dynamic";
 
-export default async function CheckoutPage({ params }) {
-  if (!isSupabaseConfigured) return <SetupNotice />;
-  const book = await getBook(params.id);
-  if (!book) notFound();
-  return <CheckoutView book={book} />;
+export default async function BuyNowPage({ params }) {
+  const { product } = await loadProduct(params.id);
+  if (!product) notFound();
+  return <BuyNow product={product} />;
 }

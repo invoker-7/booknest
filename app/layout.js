@@ -1,18 +1,24 @@
 import "./globals.css";
 import { LangProvider } from "@/components/LangProvider";
+import { StoreProvider } from "@/components/StoreProvider";
 import Shell from "@/components/Shell";
 
 export const metadata = {
-  title: "Digital Finder — Digital tools, better work.",
+  title: {
+    default: "VECTOR — Digital resources for people who build.",
+    template: "%s · VECTOR",
+  },
   description:
-    "ร้านสินค้าดิจิทัลสาธิต: เลือกสินค้า สั่งซื้อ จำลองการชำระเงิน และรับลิงก์ดาวน์โหลดทางอีเมล (DEMO ONLY)",
+    "Templates, systems and tools engineered for real work. Notion systems, UI kits, developer tools and technical guides. (Demo build — no real payments.)",
+  applicationName: "VECTOR",
+  appleWebApp: { capable: true, title: "VECTOR", statusBarStyle: "default" },
 };
 
 export const viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#E4703B",
+  themeColor: "#F4F3EF",
 };
 
 export default function RootLayout({ children }) {
@@ -22,13 +28,15 @@ export default function RootLayout({ children }) {
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
       </head>
       <body>
         <LangProvider>
-          <Shell>{children}</Shell>
+          <StoreProvider>
+            <Shell>{children}</Shell>
+          </StoreProvider>
         </LangProvider>
       </body>
     </html>

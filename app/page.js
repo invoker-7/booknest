@@ -1,11 +1,9 @@
-import { getBooks, isSupabaseConfigured } from "@/lib/supabase";
-import StoreView from "@/components/views/StoreView";
-import { SetupNotice } from "@/components/Pieces";
+import { loadCreators } from "@/lib/catalogServer";
+import HomeView from "@/components/views/HomeView";
 
 export const revalidate = 60;
 
-export default async function StorePage() {
-  if (!isSupabaseConfigured) return <SetupNotice />;
-  const books = await getBooks();
-  return <StoreView books={books} />;
+export default async function HomePage() {
+  const { products, creators, live } = await loadCreators();
+  return <HomeView products={products} creatorCount={creators.length} live={live} />;
 }

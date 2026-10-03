@@ -1,12 +1,7 @@
-import { Suspense } from "react";
-import TrackView from "@/components/views/TrackView";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-export default function TrackPage() {
-  return (
-    <Suspense fallback={<div className="empty"><p>...</p></div>}>
-      <TrackView />
-    </Suspense>
-  );
+// หน้าติดตามคำสั่งซื้อเดิม — ตอนนี้ค้นหาได้จากคลังของฉัน
+export default function TrackPage({ searchParams }) {
+  const order = searchParams?.order;
+  redirect(order ? `/library?order=${encodeURIComponent(order)}` : "/library");
 }
