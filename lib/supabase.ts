@@ -65,16 +65,21 @@ const message = (error: unknown) => (error instanceof Error ? error.message : St
 /**
  * select สินค้าพร้อมชื่อร้าน ถ้ายังไม่ได้รัน supabase/marketplace.sql
  * (ยังไม่มีตาราง shops) จะ fallback ไป select แบบเดิม
+ *
+ * ปิด retry อัตโนมัติของ supabase-js: ค่าเริ่มต้นจะลองใหม่ 3 ครั้งแบบหน่วงเวลา (รวม ~7 วินาที)
+ * ซึ่งทำให้ทุกหน้าค้างเมื่อฐานข้อมูลต่อไม่ได้ หน้าร้านควรล้มเร็วแล้วแสดงผลสำรองแทน
  */
 async function selectBooks(filter: { id?: string; shopId?: string } = {}) {
   const run = (columns: string) => {
     let q = supabaseAdmin().from("books").select(columns).order("sort", { ascending: true });
     if (filter.id) q = q.eq("id", filter.id);
     if (filter.shopId) q = q.eq("shop_id", filter.shopId);
-    return q.returns<BookRow[]>();
+    return q.retry(false).returns<BookRow[]>();
   };
   const res = await run(WITH_SHOP);
-  return res.error ? run("*") : res;
+  // fallback เฉพาะเมื่อฐานข้อมูลตอบกลับมาว่า query ผิด (มี error code จาก PostgREST)
+  // ถ้าเป็นปัญหาเครือข่าย (ไม่มี code) การยิงซ้ำมีแต่ทำให้หน้าเว็บรอนานขึ้น
+  return res.error?.code ? run("*") : res;
 }
 
 /** ดึงรายการสินค้าดิจิทัลที่เปิดขายสำหรับหน้าร้าน (เก็บในตาราง books) */
@@ -117,6 +122,7 @@ export async function getShop(id: string): Promise<ShopRow | null> {
       .from("shops")
       .select("*")
       .eq("id", id)
+      .retry(false)
       .maybeSingle<ShopRow>();
     if (error) {
       console.error("getShop:", error.message);
@@ -137,6 +143,7 @@ export async function getOrder(orderNo: string): Promise<OrderWithBook | null> {
       .from("orders")
       .select("*, book:books(*)")
       .eq("order_no", orderNo)
+      .retry(false)
       .maybeSingle<OrderWithBook>();
     if (error) {
       console.error("getOrder:", error.message);

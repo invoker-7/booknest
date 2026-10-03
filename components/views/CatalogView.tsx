@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLang } from "@/components/LangProvider";
 import { Search, Close, Grid, List, Filter } from "@/components/Icons";
@@ -113,26 +112,39 @@ function FilterGroups({ f, setF, products, idp }: FilterGroupsProps) {
   );
 }
 
-export default function CatalogView({ products, live }: { products: Product[]; live: boolean }) {
-  const { t } = useLang();
-  const params = useSearchParams();
+interface CatalogViewProps {
+  products: Product[];
+  live: boolean;
+  /** ค่าเริ่มต้นจาก URL: /products?q=...&cat=... (อ่านที่ฝั่ง server) */
+  initialQuery?: string;
+  initialCategory?: string;
+}
 
-  const [q, setQ] = useState("");
-  const [f, setF] = useState<Filters>(EMPTY);
+const filtersFor = (category: string): Filters => {
+  const cat = CATEGORIES.find((c) => c === category);
+  return { ...EMPTY, cats: cat ? [cat] : [] };
+};
+
+export default function CatalogView({ products, live, initialQuery = "", initialCategory = "" }: CatalogViewProps) {
+  const { t } = useLang();
+  const [q, setQ] = useState(initialQuery);
+  const [f, setF] = useState<Filters>(() => filtersFor(initialCategory));
   const [sort, setSort] = useState<SortKey>("featured");
   const [view, setView] = useState<ViewMode>("grid");
   const [sheet, setSheet] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const sheetClose = useRef<HTMLButtonElement>(null);
 
-  // ค่าเริ่มต้นจาก URL: /products?q=...&cat=...
-  const urlQ = params.get("q") || "";
-  const urlCat = params.get("cat") || "";
+  // URL เปลี่ยนขณะอยู่หน้านี้ (เช่น ค้นหาจาก header) ให้ตัวกรองตามไปด้วย
+  const mounted = useRef(false);
   useEffect(() => {
-    setQ(urlQ);
-    const cat = CATEGORIES.find((c) => c === urlCat);
-    setF({ ...EMPTY, cats: cat ? [cat] : [] });
-  }, [urlQ, urlCat]);
+    if (!mounted.current) {
+      mounted.current = true;
+      return;
+    }
+    setQ(initialQuery);
+    setF(filtersFor(initialCategory));
+  }, [initialQuery, initialCategory]);
 
   useEffect(() => {
     try {

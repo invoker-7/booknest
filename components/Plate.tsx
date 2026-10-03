@@ -26,11 +26,17 @@ const TONES: Record<Tone, Palette> = {
 // หมวดไหนใช้พื้นเข้ม เพื่อให้แคตตาล็อกมีจังหวะ ไม่ซ้ำกันทั้งแถว
 const DARK = new Set<Category>(["uikit", "devtool", "asset"]);
 
-function GridBg({ c, w = 400, h = 300, step = 20 }: DrawProps & { w?: number; h?: number; step?: number }) {
-  const lines: JSX.Element[] = [];
-  for (let x = step; x < w; x += step) lines.push(<path key={`x${x}`} d={`M${x} 0V${h}`} />);
-  for (let y = step; y < h; y += step) lines.push(<path key={`y${y}`} d={`M0 ${y}H${w}`} />);
-  return <g stroke={c.grid} strokeWidth="1">{lines}</g>;
+// เส้นกริดทั้งหมดรวมเป็น path เดียว (คำนวณครั้งเดียว) — ลดจำนวน element ต่อภาพจาก ~33 เหลือ 1
+const GRID_PATH = (() => {
+  const w = 400, h = 300, step = 20;
+  let d = "";
+  for (let x = step; x < w; x += step) d += `M${x} 0V${h}`;
+  for (let y = step; y < h; y += step) d += `M0 ${y}H${w}`;
+  return d;
+})();
+
+function GridBg({ c }: DrawProps) {
+  return <path d={GRID_PATH} stroke={c.grid} strokeWidth="1" fill="none" />;
 }
 
 function Ticks({ c }: DrawProps) {

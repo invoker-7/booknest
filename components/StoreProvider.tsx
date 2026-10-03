@@ -26,11 +26,13 @@ interface StoreContext {
   inCart: (id: string) => boolean;
   isSaved: (id: string) => boolean;
   refresh: () => void;
-  toast: string | null;
   notify: (message: string) => void;
 }
 
 const Ctx = createContext<StoreContext | null>(null);
+
+// ข้อความ toast แยก context ออกมา เพื่อไม่ให้ทุก component ที่ใช้ตะกร้า render ใหม่ทุกครั้งที่ toast ขึ้น/หาย
+const ToastCtx = createContext<string | null>(null);
 
 const CART = "vx.cart";
 const SAVED = "vx.saved";
@@ -145,28 +147,39 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return m;
   }, [orders]);
 
-  const value: StoreContext = {
-    ready,
-    cart,
-    saved,
-    orders,
-    owned,
-    addToCart,
-    removeFromCart,
-    removeManyFromCart,
-    toggleSaved,
-    inCart: (id: string) => cart.some((x) => x.id === id),
-    isSaved: (id: string) => saved.some((x) => x.id === id),
-    refresh: sync,
-    toast,
-    notify,
-  };
+  const value = useMemo<StoreContext>(
+    () => ({
+      ready,
+      cart,
+      saved,
+      orders,
+      owned,
+      addToCart,
+      removeFromCart,
+      removeManyFromCart,
+      toggleSaved,
+      inCart: (id: string) => cart.some((x) => x.id === id),
+      isSaved: (id: string) => saved.some((x) => x.id === id),
+      refresh: sync,
+      notify,
+    }),
+    [ready, cart, saved, orders, owned, addToCart, removeFromCart, removeManyFromCart, toggleSaved, sync, notify]
+  );
 
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+  return (
+    <Ctx.Provider value={value}>
+      <ToastCtx.Provider value={toast}>{children}</ToastCtx.Provider>
+    </Ctx.Provider>
+  );
 }
 
 export function useStore(): StoreContext {
   const v = useContext(Ctx);
   if (!v) throw new Error("useStore must be used inside <StoreProvider>");
   return v;
+}
+
+/** ข้อความ toast ปัจจุบัน (null เมื่อไม่มี) */
+export function useToast(): string | null {
+  return useContext(ToastCtx);
 }

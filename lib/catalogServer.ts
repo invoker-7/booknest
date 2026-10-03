@@ -10,9 +10,11 @@ export interface Catalog {
 }
 
 // ฐานข้อมูลว่างหรือเชื่อมต่อไม่ได้: จำผลไว้ชั่วครู่ ไม่ต้องรอ timeout ซ้ำทุกหน้า
-const EMPTY_TTL_MS = 120_000;
-let emptyUntil = 0;
-let inflight: Promise<Catalog> | null = null;
+const EMPTY_TTL_MS = 60_000;
+
+// เก็บบน globalThis เพราะในโหมด dev โมดูลถูกโหลดใหม่บ่อย ตัวแปรระดับโมดูลจะหายทุกครั้ง
+const state = ((globalThis as { __vectorCatalog?: { emptyUntil: number; inflight: Promise<Catalog> | null } })
+  .__vectorCatalog ??= { emptyUntil: 0, inflight: null });
 
 const sampleCatalog = (): Catalog => ({
   products: SAMPLE_PRODUCTS.map((p, i) => ({ ...enrich(p, i), sample: true })),
@@ -25,18 +27,18 @@ const sampleCatalog = (): Catalog => ({
  * live = false -> ฐานข้อมูลว่างหรือเชื่อมต่อไม่ได้ ใช้ข้อมูลตัวอย่าง (สั่งซื้อไม่ได้)
  */
 export function loadCatalog(): Promise<Catalog> {
-  if (Date.now() < emptyUntil) return Promise.resolve(sampleCatalog());
+  if (Date.now() < state.emptyUntil) return Promise.resolve(sampleCatalog());
   // หลายส่วนของหน้าเดียวกันเรียกพร้อมกัน ให้ใช้คำขอเดียว
-  if (!inflight) {
-    inflight = getBooks()
+  if (!state.inflight) {
+    state.inflight = getBooks()
       .then((rows) => {
         if (rows.length > 0) return { products: rows.map((row, i) => enrich(row, i)), live: true };
-        emptyUntil = Date.now() + EMPTY_TTL_MS;
+        state.emptyUntil = Date.now() + EMPTY_TTL_MS;
         return sampleCatalog();
       })
-      .finally(() => { inflight = null; });
+      .finally(() => { state.inflight = null; });
   }
-  return inflight;
+  return state.inflight;
 }
 
 export async function loadProduct(id: string): Promise<Catalog & { product: Product | null }> {

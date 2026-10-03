@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useLang } from "@/components/LangProvider";
 import { useStore } from "@/components/StoreProvider";
@@ -50,16 +49,21 @@ function remember(o: LookupOrder): void {
 }
 
 /** คลังของฉัน — สินค้าที่ซื้อแล้ว + รายการที่บันทึก + ค้นหาคำสั่งซื้อเดิม */
-export default function LibraryView({ products }: { products: Product[] }) {
+interface LibraryViewProps {
+  products: Product[];
+  /** ?order=ORD-... จาก URL ใช้เติมฟอร์มค้นหา */
+  initialOrderNo?: string;
+}
+
+export default function LibraryView({ products, initialOrderNo = "" }: LibraryViewProps) {
   const { t, lang } = useLang();
-  const params = useSearchParams();
   const { ready, orders, saved, refresh } = useStore();
 
   const [tab, setTab] = useState<Tab>("purchases");
   const [busy, setBusy] = useState("");
   const [failed, setFailed] = useState("");
 
-  const [no, setNo] = useState("");
+  const [no, setNo] = useState(initialOrderNo);
   const [email, setEmail] = useState("");
   const [touched, setTouched] = useState(false);
   const [finding, setFinding] = useState(false);
@@ -67,12 +71,6 @@ export default function LibraryView({ products }: { products: Product[] }) {
   const synced = useRef(false);
 
   const byId = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
-
-  // ?order=ORD-... เติมลงฟอร์มค้นหา
-  useEffect(() => {
-    const fromUrl = params.get("order");
-    if (fromUrl) setNo(fromUrl);
-  }, [params]);
 
   // ซิงก์สถานะล่าสุดจาก server หนึ่งครั้ง (ใช้อีเมลที่จำไว้ยืนยันตัวตน)
   useEffect(() => {

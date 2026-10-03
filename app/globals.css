@@ -77,6 +77,9 @@ s { text-decoration-thickness: 1px; }
 }
 .skip:focus { top: 8px; }
 
+/* จองความสูงของเนื้อหาไว้ก่อน: หน้าที่อ่านข้อมูลจาก localStorage (ตะกร้า คลัง) จะไม่ดัน footer ให้กระโดด */
+main { min-height: calc(100vh - var(--hdr) - 34px); min-height: calc(100svh - var(--hdr) - 34px); }
+
 .wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 var(--gut); }
 .page-pad { padding-top: 48px; padding-bottom: 96px; }
 .show-sm { display: none !important; }

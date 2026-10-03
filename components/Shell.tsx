@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useLang } from "./LangProvider";
-import { useStore } from "./StoreProvider";
+import { useStore, useToast } from "./StoreProvider";
 import { Search, Cart, Menu, Close, Home, Box, Library, Archive, Arrow, Mark, Check, type IconProps } from "./Icons";
 import type { TKey } from "@/lib/i18n";
 
@@ -154,7 +154,7 @@ function MobileMenu({ open, onClose, pathname }: { open: boolean; onClose: () =>
 }
 
 function Toast() {
-  const { toast } = useStore();
+  const toast = useToast();
   const { t } = useLang();
   return (
     <div className="toast-region" aria-live="polite">

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, useCallback, type ReactNode } from "react";
 import { DICT, type Translate } from "@/lib/i18n";
 import type { Lang } from "@/lib/types";
 
@@ -36,7 +36,9 @@ export function LangProvider({ children }: { children: ReactNode }) {
 
   const t = useCallback<Translate>((key) => DICT[lang][key] ?? DICT.en[key] ?? key, [lang]);
 
-  return <Ctx.Provider value={{ lang, setLang, t }}>{children}</Ctx.Provider>;
+  const value = useMemo(() => ({ lang, setLang, t }), [lang, setLang, t]);
+
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
 export function useLang(): LangContext {
