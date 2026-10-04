@@ -1,4 +1,4 @@
-import type { EmailStatus, LookupOrder, OrderStatus } from "@/lib/types";
+import type { AccountOrder, EmailStatus, LookupOrder, OrderStatus, SessionUser } from "@/lib/types";
 
 /**
  * ตัวเรียก API ของร้านจากฝั่งเบราว์เซอร์
@@ -22,9 +22,9 @@ export interface PayOrderResult {
   alreadyPaid?: boolean;
 }
 
-async function postJson<T>(url: string, body?: unknown): Promise<T> {
+export async function sendJson<T>(url: string, body?: unknown, method = "POST"): Promise<T> {
   const res = await fetch(url, {
-    method: "POST",
+    method,
     headers: { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
@@ -35,6 +35,8 @@ async function postJson<T>(url: string, body?: unknown): Promise<T> {
   }
   return data as T;
 }
+
+const postJson = sendJson;
 
 /** สร้างคำสั่งซื้อหนึ่งรายการ (ราคาอ่านจากฐานข้อมูลฝั่ง server เสมอ) */
 export const createOrder = (input: CreateOrderInput) =>
@@ -61,5 +63,40 @@ export async function requestDownloadUrl(orderNo: string, email: string): Promis
     return data.url ?? null;
   } catch {
     return null;
+  }
+}
+
+/* ---------- สมาชิก ---------- */
+
+/** ผู้ใช้ที่ล็อกอินอยู่ — null เมื่อไม่ได้ล็อกอินหรือเรียกไม่สำเร็จ */
+export async function fetchMe(): Promise<SessionUser | null> {
+  try {
+    const res = await fetch("/api/auth/me", { cache: "no-store" });
+    const data = (await res.json()) as { user?: SessionUser | null };
+    return data.user ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** เข้าสู่ระบบ — โยน Error(code) เมื่อไม่สำเร็จ */
+export const login = (email: string, password: string) =>
+  postJson<{ ok: true }>("/api/auth/login", { email, password });
+
+/** สมัครสมาชิก — confirm = true เมื่อต้องกดยืนยันในอีเมลก่อน */
+export const signup = (name: string, email: string, password: string) =>
+  postJson<{ ok: true; confirm: boolean }>("/api/auth/signup", { name, email, password });
+
+export const logout = () => postJson<{ ok: true }>("/api/auth/logout");
+
+/** ประวัติคำสั่งซื้อของบัญชี — คืน [] เมื่อไม่สำเร็จ */
+export async function fetchAccountOrders(): Promise<AccountOrder[]> {
+  try {
+    const res = await fetch("/api/account/orders", { cache: "no-store" });
+    if (!res.ok) return [];
+    const data = (await res.json()) as { orders?: AccountOrder[] };
+    return data.orders ?? [];
+  } catch {
+    return [];
   }
 }

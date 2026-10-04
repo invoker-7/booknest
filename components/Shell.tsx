@@ -5,7 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useLang } from "./LangProvider";
 import { useStore, useToast } from "./StoreProvider";
-import { Search, Cart, Menu, Close, Home, Box, Library, Archive, Arrow, Mark, Check, type IconProps } from "./Icons";
+import { useAuth } from "./AuthProvider";
+import { Search, Cart, Menu, Close, Home, Box, Library, Archive, Arrow, Mark, Check, User, type IconProps } from "./Icons";
 import type { TKey } from "@/lib/i18n";
 
 interface NavItem {
@@ -42,7 +43,7 @@ const TABS: TabItem[] = [
 ];
 
 // หน้าที่มีแถบปุ่มหลักติดล่างจอของตัวเอง ไม่ต้องแสดงแท็บบาร์มือถือ
-const NO_TABBAR = ["/product/", "/cart", "/checkout", "/pay/", "/receipt"];
+const NO_TABBAR = ["/product/", "/cart", "/checkout", "/pay/", "/receipt", "/login", "/signup"];
 
 const isActive = (pathname: string, href: string) =>
   href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
@@ -65,6 +66,19 @@ function CartLink({ withLabel }: { withLabel?: boolean }) {
       <Cart />
       {withLabel && <span className="hdr-label">{t("navCart")}</span>}
       <span className={`count mono${n ? "" : " zero"}`}>{n}</span>
+    </Link>
+  );
+}
+
+/** ลิงก์บัญชี: ยังไม่ล็อกอิน -> เข้าสู่ระบบ, ล็อกอินแล้ว -> บัญชีของฉัน */
+function AccountLink({ pathname }: { pathname: string }) {
+  const { t } = useLang();
+  const { user } = useAuth();
+  const href = user ? "/account" : "/login";
+  return (
+    <Link href={href} className="hdr-action hide-sm" aria-current={isActive(pathname, href) ? "page" : undefined}>
+      <User />
+      <span className="hdr-label">{user ? t("navAccount") : t("loginBtn")}</span>
     </Link>
   );
 }
@@ -117,6 +131,7 @@ function SearchPanel({ open, onClose }: { open: boolean; onClose: () => void }) 
 
 function MobileMenu({ open, onClose, pathname }: { open: boolean; onClose: () => void; pathname: string }) {
   const { t } = useLang();
+  const { user } = useAuth();
   useEffect(() => {
     if (!open) return;
     document.body.classList.add("lock");
@@ -129,7 +144,13 @@ function MobileMenu({ open, onClose, pathname }: { open: boolean; onClose: () =>
   }, [open, onClose]);
 
   if (!open) return null;
-  const links: NavItem[] = [...NAV, { href: "/library", key: "navLibrary" }, { href: "/cart", key: "navCart" }, { href: "/about", key: "about" }];
+  const links: NavItem[] = [
+    ...NAV,
+    { href: "/library", key: "navLibrary" },
+    { href: "/cart", key: "navCart" },
+    user ? { href: "/account", key: "navAccount" } : { href: "/login", key: "loginBtn" },
+    { href: "/about", key: "about" },
+  ];
   return (
     <div className="mmenu" role="dialog" aria-modal="true" aria-label={t("navMenu")} id="mobile-menu">
       <nav aria-label="Mobile">
@@ -223,6 +244,9 @@ export default function Shell({ children }: { children: ReactNode }) {
 
   const showTabbar = !NO_TABBAR.some((p) => pathname.startsWith(p));
 
+  // หลังบ้านมีโครงหน้าของตัวเอง (app/admin/layout.tsx)
+  if (pathname.startsWith("/admin")) return <>{children}</>;
+
   return (
     <>
       <a href="#main" className="skip">{t("skip")}</a>
@@ -265,6 +289,7 @@ export default function Shell({ children }: { children: ReactNode }) {
               <Library />
               <span className="hdr-label">{t("navLibrary")}</span>
             </Link>
+            <AccountLink pathname={pathname} />
             <CartLink withLabel />
             <button
               type="button"

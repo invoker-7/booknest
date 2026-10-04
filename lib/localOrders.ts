@@ -41,6 +41,26 @@ export function rememberOrder(entry: LocalOrder): void {
   write(KEY, rest.slice(-60));
 }
 
+/** เพิ่มหรืออัปเดตหลายคำสั่งซื้อด้วยการเขียน localStorage ครั้งเดียว */
+export function rememberOrders(entries: LocalOrder[]): void {
+  if (entries.length === 0) return;
+  const byNo = new Map(listLocalOrders().map((o) => [o.orderNo, o]));
+  const now = new Date().toISOString();
+  for (const entry of entries) {
+    const prev = byNo.get(entry.orderNo);
+    byNo.delete(entry.orderNo);
+    byNo.set(entry.orderNo, { ...prev, ...entry, savedAt: prev?.savedAt || now });
+  }
+  write(KEY, [...byNo.values()].slice(-60));
+}
+
+/** ออกจากระบบ: เอาคำสั่งซื้อของบัญชีออกจากอุปกรณ์นี้ (คำสั่งซื้อแบบไม่ล็อกอินยังอยู่) */
+export function forgetAccountOrders(): void {
+  const all = listLocalOrders();
+  const kept = all.filter((o) => !o.account);
+  if (kept.length !== all.length) write(KEY, kept);
+}
+
 export function findLocalOrder(orderNo: string): LocalOrder | null {
   return listLocalOrders().find((o) => o.orderNo === orderNo) || null;
 }

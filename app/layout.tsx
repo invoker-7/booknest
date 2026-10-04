@@ -4,6 +4,7 @@ import { IBM_Plex_Mono, IBM_Plex_Sans, IBM_Plex_Sans_Thai } from "next/font/goog
 import "./globals.css";
 import { LangProvider } from "@/components/LangProvider";
 import { StoreProvider } from "@/components/StoreProvider";
+import { AuthProvider } from "@/components/AuthProvider";
 import Shell from "@/components/Shell";
 
 // ฟอนต์ถูกดาวน์โหลดตอน build และเสิร์ฟจากโดเมนเดียวกัน (ไม่มี request ไป Google ตอนใช้งาน)
@@ -50,7 +51,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <LangProvider>
           <StoreProvider>
-            <Shell>{children}</Shell>
+            <AuthProvider>
+              <Shell>{children}</Shell>
+            </AuthProvider>
           </StoreProvider>
         </LangProvider>
       </body>

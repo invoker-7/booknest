@@ -44,6 +44,19 @@ export function maskEmail(email: string | null | undefined): string {
 export const isEmail = (v: unknown): boolean =>
   /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(v).trim());
 
+/** ความยาวรหัสผ่านขั้นต่ำ (ตรวจทั้งฟอร์มและ API) */
+export const MIN_PASSWORD = 8;
+
+/** ไฟล์สินค้าที่หลังบ้านอัปโหลดได้ (ตรวจทั้งฟอร์มและ API) */
+export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+export const UPLOAD_EXTENSIONS = ["pdf", "zip", "epub", "fig", "docx", "xlsx", "pptx", "png", "jpg", "svg", "mp4", "txt", "md", "json"];
+
+/** 4404019 -> "4.2 MB" */
+export function fileSize(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
 /** เลือกฟิลด์ตามภาษา: pick(book, 'title', lang) -> book.title_th | book.title_en */
 export function pick(row: object | null | undefined, field: string, lang: Lang): string {
   if (!row) return "";

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { normalizeEmail, readJsonBody } from "@/lib/api";
 import { isEmail } from "@/lib/format";
+import { getSessionIdentity } from "@/lib/auth";
 import type { BookRow } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -20,7 +21,9 @@ export async function POST(req: Request) {
 
   const bookId = String(body.bookId || "").trim();
   const name = String(body.name || "").trim();
-  const email = normalizeEmail(body.email);
+  // ล็อกอินอยู่: ผูกคำสั่งซื้อกับบัญชี และใช้อีเมลของบัญชีเสมอ (ไฟล์ส่งไปที่อีเมลนี้)
+  const user = await getSessionIdentity();
+  const email = user?.email || normalizeEmail(body.email);
 
   if (!bookId || !name || !isEmail(email)) {
     return NextResponse.json({ error: "invalid_input" }, { status: 400 });
@@ -52,6 +55,7 @@ export async function POST(req: Request) {
     customer_email: email,
     amount: book.price,
     status: "PENDING",
+    ...(user ? { user_id: user.id } : {}),
   });
 
   if (insErr) {

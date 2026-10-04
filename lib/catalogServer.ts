@@ -21,6 +21,11 @@ const sampleCatalog = (): Catalog => ({
   live: false,
 });
 
+/** หลังบ้านแก้สินค้าแล้ว: ลืมผล "ฐานข้อมูลว่าง" ที่จำไว้ */
+export function resetCatalogCache(): void {
+  state.emptyUntil = 0;
+}
+
 /**
  * โหลดแคตตาล็อกสำหรับหน้าร้าน
  * live = true  -> สินค้าจริงจาก Supabase

@@ -18,10 +18,24 @@ VECTOR เป็นร้านขายสินค้าดิจิทัล�
 - **จำลองการชำระเงิน:** เปลี่ยนสถานะ `PENDING → PAID → COMPLETED`
 - **ส่งไฟล์:** สร้าง signed URL จาก bucket แบบ private (มีอายุ 24 ชม.) แล้วส่งทางอีเมลผ่าน Gmail SMTP
 - **คลังของฉัน:** สินค้าที่ซื้อแล้ว ดาวน์โหลดซ้ำ ชำระคำสั่งซื้อที่ค้าง และค้นหาคำสั่งซื้อเดิมด้วยเลขคำสั่งซื้อคู่กับอีเมล
+- **สมาชิก:** สมัคร / เข้าสู่ระบบด้วยอีเมล + รหัสผ่าน หรือ Google (Supabase Auth) คำสั่งซื้อที่ทำตอนล็อกอินผูกกับบัญชี ดูประวัติและดาวน์โหลดได้จากทุกอุปกรณ์ที่ `/account`
+- **หลังบ้าน (`/admin`, เฉพาะผู้ดูแล):**
+  - Dashboard: ยอดขาย คำสั่งซื้อ ลูกค้า สินค้า กราฟยอดขาย 30 วัน สินค้าขายดี อัปเดตเองทุก 15 วินาที
+  - จัดการสินค้า: เพิ่ม แก้ไข ลบ/ซ่อน หมวดหมู่ และอัปโหลดไฟล์ตรงเข้า Storage แบบ private
+  - รายการคำสั่งซื้อและลูกค้า
+  - Import / Export: ส่งออกสินค้า ผู้ใช้ ยอดขาย เป็น CSV, Excel, JSON และนำเข้าสินค้าจากไฟล์ (ลากวางได้)
 - **ครีเอเตอร์ / คลังบทความ / ใบเสร็จ**
 - **รองรับ 2 ภาษา:** ไทยและอังกฤษ สลับได้ทุกหน้า
 
-ไม่มีระบบบัญชีผู้ใช้: ตะกร้า รายการที่บันทึก คลัง และใบเสร็จ เก็บใน `localStorage` ของเบราว์เซอร์ ส่วนข้อมูลจริงอยู่ในตาราง `orders` และการดาวน์โหลดต้องยืนยันด้วยอีเมลเสมอ
+ซื้อแบบไม่สมัครสมาชิกได้เหมือนเดิม: ตะกร้า รายการที่บันทึก และคำสั่งซื้อแบบ guest เก็บใน `localStorage` ของเบราว์เซอร์ ส่วนข้อมูลจริงอยู่ในตาราง `orders` และการดาวน์โหลดต้องยืนยันด้วยอีเมลเสมอ
+
+### ความเร็ว
+
+- หน้าร้านยังเป็น static (ISR 60 วินาที) — ไม่อ่าน cookie ตอน render สถานะสมาชิกถามจาก `/api/auth/me` หลังหน้าแสดงผล และถามเฉพาะเมื่อมี cookie บอกว่าล็อกอินอยู่ ผู้ใช้ทั่วไปจึงไม่มี request เพิ่ม
+- ไม่มี Supabase SDK ใน bundle ของเบราว์เซอร์ (auth ทำที่ server ทั้งหมด, session อยู่ใน cookie แบบ httpOnly)
+- middleware ทำงานเฉพาะ `/admin` · ไลบรารี Excel โหลดเฉพาะตอน import/export ฝั่ง server
+- สถิติ Dashboard รวมยอดในฐานข้อมูล (`admin_stats`) ไม่ดึงคำสั่งซื้อทั้งหมดออกมานับ
+- ไฟล์สินค้าอัปโหลดจากเบราว์เซอร์ตรงไป Storage ผ่าน signed URL ไม่ผ่าน serverless function
 
 ## Tech stack
 
@@ -29,7 +43,7 @@ VECTOR เป็นร้านขายสินค้าดิจิทัล�
 | --- | --- |
 | Web | Next.js 14 (App Router), React 18, TypeScript (strict) |
 | Package manager | pnpm |
-| Database / Storage | Supabase (PostgreSQL + Storage) |
+| Database / Storage / Auth | Supabase (PostgreSQL + Storage + Auth) |
 | Email | Nodemailer + Gmail SMTP |
 | Deploy | Vercel |
 
@@ -39,6 +53,12 @@ VECTOR เป็นร้านขายสินค้าดิจิทัล�
 app/                    หน้าเว็บ (App Router) + API routes
   api/orders/           สร้าง / ค้นหา / จ่ายเงินคำสั่งซื้อ
   api/download/         ออกลิงก์ดาวน์โหลด
+  api/auth/             สมัคร / เข้าสู่ระบบ / ออกจากระบบ / Google OAuth
+  api/account/          ประวัติคำสั่งซื้อของบัญชี
+  api/admin/            สถิติ, สินค้า, อัปโหลด, import, export (ตรวจสิทธิ์ admin ทุก route)
+  admin/                หน้าหลังบ้าน
+middleware.ts           ต่ออายุ session ให้ /admin
+components/admin/       UI ของหลังบ้าน
 components/             Shell (header, footer, tab bar), ui (ปุ่ม การ์ด ฯลฯ), Plate (ภาพสินค้าแบบ SVG)
 components/views/       UI ของแต่ละหน้า (client components)
 lib/types.ts            type กลางของทั้งโปรเจกต์
@@ -49,6 +69,9 @@ lib/apiClient.ts        ตัวเรียก API จากเบราว์
 lib/purchase.ts         ขั้นตอนการสั่งซื้อทั้งตะกร้า
 lib/localOrders.ts      คำสั่งซื้อและใบเสร็จที่จำไว้ในเบราว์เซอร์
 lib/email.ts            ส่งอีเมลลิงก์ดาวน์โหลด
+lib/auth.ts             session จาก cookie, ตรวจสิทธิ์ admin (server เท่านั้น)
+lib/admin.ts            ข้อมูลหลังบ้าน + ตรวจข้อมูลสินค้า (ใช้ทั้งฟอร์มและ import)
+lib/csv.ts, sheets.ts   อ่าน/เขียน CSV และ Excel
 lib/i18n.ts             ข้อความทั้งหมดของเว็บ ภาษา th / en (key มี type ตรวจตอน build)
 lib/archive.ts          บทความในหน้า Archive
 supabase/*.sql          ตาราง, function และ RLS
@@ -61,14 +84,19 @@ supabase/*.sql          ตาราง, function และ RLS
 ## เริ่มต้นใช้งาน
 
 1. **สร้างโปรเจกต์ Supabase**
-   - ไปที่ SQL Editor แล้วรัน [supabase/schema.sql](supabase/schema.sql) ตามด้วย [supabase/marketplace.sql](supabase/marketplace.sql)
-   - ไปที่ Storage แล้วสร้าง bucket ชื่อ `ebooks` ตั้งเป็น **private** จากนั้นอัปโหลดไฟล์ให้ชื่อตรงกับ `file_path` ในตาราง
+   - ไปที่ SQL Editor แล้วรันตามลำดับ: [supabase/schema.sql](supabase/schema.sql) → [supabase/marketplace.sql](supabase/marketplace.sql) → [supabase/admin.sql](supabase/admin.sql)
+   - `admin.sql` สร้าง bucket `ebooks` แบบ **private** ให้แล้ว ไฟล์สินค้าอัปโหลดผ่านหน้า `/admin/products`
+   - Authentication → URL Configuration: ใส่ Site URL ของเว็บ และเพิ่ม `https://<โดเมน>/auth/callback` (กับ `http://localhost:3000/auth/callback`) ใน Redirect URLs
+   - (ถ้าใช้ Google) Authentication → Providers → Google: ใส่ Client ID / Secret จาก Google Cloud Console แล้วตั้ง `AUTH_GOOGLE_ENABLED=true`
 2. **ตั้งค่า env:** คัดลอก `.env.example` เป็น `.env.local` แล้วใส่ค่าจริง
 
    | ตัวแปร | มาจากไหน |
    | --- | --- |
    | `SUPABASE_URL` | Project Settings → API |
    | `SUPABASE_SECRET_KEY` | Project Settings → API (secret / service_role) **ใช้ฝั่ง server เท่านั้น** |
+   | `SUPABASE_ANON_KEY` | Project Settings → API (anon / publishable) ใช้ที่ server สำหรับ session ของสมาชิก |
+   | `ADMIN_EMAILS` | อีเมลผู้ดูแล คั่นด้วย `,` (หรือรัน `update profiles set role = 'admin'` ท้ายไฟล์ `admin.sql`) |
+   | `AUTH_GOOGLE_ENABLED` | `true` เมื่อเปิด Google provider ใน Supabase แล้ว (ปุ่ม Google จะแสดง) |
    | `SUPABASE_EBOOK_BUCKET` | ชื่อ bucket (ค่าเริ่มต้น `ebooks`) |
    | `SMTP_USER` / `SMTP_PASS` | Gmail + App Password (ต้องเปิด 2-Step Verification ก่อน) ใส่เครื่องหมายคำพูดครอบถ้ารหัสมีช่องว่าง |
    | `EMAIL_FROM` | เช่น `"VECTOR <your.gmail@gmail.com>"` |
@@ -88,7 +116,18 @@ supabase/*.sql          ตาราง, function และ RLS
    | `pnpm typecheck` | ตรวจ type อย่างเดียว |
    | `pnpm lint` | ตรวจ ESLint |
 
-4. **Deploy บน Vercel:** ใส่ env ชุดเดียวกันใน Project Settings → Environment Variables (Vercel ใช้ pnpm อัตโนมัติเมื่อเห็น `pnpm-lock.yaml`)
+4. **ตั้งผู้ดูแล:** สมัครสมาชิกที่ `/signup` ด้วยอีเมลที่ใส่ใน `ADMIN_EMAILS` แล้วเข้า `/admin`
+
+5. **(ทางเลือก) Supabase แบบ local:** ต้องมี Docker
+
+   ```bash
+   npx supabase start    # ได้ API ที่ http://127.0.0.1:54321 และ DB ที่พอร์ต 54322
+   for f in schema marketplace admin; do psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -f supabase/$f.sql; done
+   ```
+
+   แล้วใส่ URL / anon key / service_role key ที่คำสั่งพิมพ์ออกมาใน `.env.development.local` (มีผลเฉพาะ `pnpm dev`)
+
+6. **Deploy บน Vercel:** ใส่ env ชุดเดียวกันใน Project Settings → Environment Variables (Vercel ใช้ pnpm อัตโนมัติเมื่อเห็น `pnpm-lock.yaml`)
 
 ## แก้ปัญหาที่เจอบ่อย
 
@@ -167,6 +206,10 @@ token ทั้งหมดอยู่ใน `:root` ของ [app/globals.css
 
 ## ข้อจำกัด
 
-- การชำระเงินเป็นการจำลองทั้งหมด
-- ไม่มีระบบผู้ดูแล ระบบคืนเงิน หรือคูปอง
+- การชำระเงินเป็นการจำลองทั้งหมด (ยังไม่ได้ต่อ Stripe)
+- Google login ต้องตั้งค่า OAuth client ใน Supabase ก่อน — โค้ดพร้อมแล้วแต่ยังไม่ได้ทดสอบกับ Google จริง
+- ยังไม่มีหน้าลืมรหัสผ่าน / แก้โปรไฟล์ ระบบคืนเงิน หรือคูปอง
+- คำสั่งซื้อแบบ guest ไม่ถูกผูกเข้าบัญชีอัตโนมัติจากอีเมล (ต้องค้นด้วยเลขคำสั่งซื้อ + อีเมลในคลังของฉัน)
+- Import รองรับเฉพาะสินค้า (ผู้ใช้และยอดขายส่งออกได้อย่างเดียว) และจัดการร้านค้า (shops) ยังต้องทำผ่าน SQL
+- Dashboard อัปเดตด้วยการถามซ้ำทุก 15 วินาที ไม่ใช่ Supabase Realtime
 - Gmail SMTP ส่งอีเมลได้จำกัดต่อวัน เหมาะกับการสาธิตเท่านั้น

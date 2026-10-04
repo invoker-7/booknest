@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useLang } from "@/components/LangProvider";
 import { useStore } from "@/components/StoreProvider";
+import { useAuth } from "@/components/AuthProvider";
 import Plate from "@/components/Plate";
 import { Alert, Arrow, Cart, Check, Info, Lock, Spinner } from "@/components/Icons";
 import { Button, LinkButton, Empty, Steps, Notice } from "@/components/ui";
@@ -22,6 +23,7 @@ export default function CheckoutView({ live }: { live: boolean }) {
   const { t, lang } = useLang();
   const router = useRouter();
   const { ready, cart, orders, removeManyFromCart } = useStore();
+  const { user } = useAuth();
 
   const [step, setStep] = useState<1 | 2>(1); // 1 = ข้อมูลผู้ซื้อ, 2 = ชำระเงิน
   const [name, setName] = useState("");
@@ -42,6 +44,13 @@ export default function CheckoutView({ live }: { live: boolean }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orders]);
+
+  // ล็อกอินอยู่: คำสั่งซื้อผูกกับบัญชีและส่งไฟล์ไปที่อีเมลของบัญชีเสมอ
+  useEffect(() => {
+    if (!user) return;
+    setEmail(user.email);
+    setName((prev) => prev || user.name);
+  }, [user]);
 
   if (!ready) return <div className="wrap page-pad" aria-busy="true" />;
 
@@ -156,12 +165,13 @@ export default function CheckoutView({ live }: { live: boolean }) {
                     placeholder={t("emailPh")}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    readOnly={Boolean(user)}
                     aria-invalid={emailBad || undefined}
                     aria-describedby={emailBad ? "co-email-err" : "co-email-hint"}
                     required
                   />
                   <span className="err" id="co-email-err"><Alert size={14} /> {t("errEmail")}</span>
-                  {!emailBad && <span className="hint" id="co-email-hint">{t("emailHint")}</span>}
+                  {!emailBad && <span className="hint" id="co-email-hint">{t(user ? "emailAccountHint" : "emailHint")}</span>}
                 </div>
               </div>
 

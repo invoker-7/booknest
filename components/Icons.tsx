@@ -58,6 +58,12 @@ export const Lock = (p: IconProps) => <I {...p}><path d="M5 11h14v10H5zM8 11V7.5
 export const Print = (p: IconProps) => <I {...p}><path d="M6 9V3h12v6M6 17H3V9h18v8h-3M6 14h12v7H6z" /></I>;
 export const Trash = (p: IconProps) => <I {...p}><path d="M4 6h16M9 6V3.5h6V6M6 6l1 15h10l1-15" /></I>;
 export const Globe = (p: IconProps) => <I {...p}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.5 2.6 3.7 5.6 3.7 9s-1.2 6.4-3.7 9c-2.5-2.6-3.7-5.6-3.7-9S9.5 5.6 12 3z" /></I>;
+export const User = (p: IconProps) => <I {...p}><circle cx="12" cy="8" r="4" /><path d="M4 21c.6-4.2 3.6-6.5 8-6.5s7.4 2.3 8 6.5" /></I>;
+export const Upload = (p: IconProps) => <I {...p}><path d="M12 16V4M6.5 9.5L12 4l5.5 5.5M4 20h16" /></I>;
+export const Chart = (p: IconProps) => <I {...p}><path d="M4 4v16h16M8 16v-4M12 16V8M16 16v-6" /></I>;
+export const Users = (p: IconProps) => <I {...p}><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20c.5-3.6 2.9-5.5 6.5-5.5s6 1.9 6.5 5.5M16 4.8a3.5 3.5 0 010 6.4M18 14.8c2 .7 3.2 2.4 3.5 5.2" /></I>;
+export const Receipt = (p: IconProps) => <I {...p}><path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6" /></I>;
+export const Swap = (p: IconProps) => <I {...p}><path d="M7 4v14M3.5 14.5L7 18l3.5-3.5M17 20V6M13.5 9.5L17 6l3.5 3.5" /></I>;
 export const Spinner = ({ size = 16 }: { size?: number }) => (
   <svg className="spin" width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity=".25" strokeWidth="2" />

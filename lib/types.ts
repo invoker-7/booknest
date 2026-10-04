@@ -22,6 +22,7 @@ export type OrderStatus = "PENDING" | "PAID" | "PROCESSING" | "COMPLETED";
 export type EmailStatus = "sent" | "mock" | "failed";
 export type SortKey = "featured" | "newest" | "priceAsc" | "priceDesc" | "rating";
 export type PriceBandId = "u200" | "200-400" | "o400";
+export type UserRole = "customer" | "admin";
 export type ArticleType = "story" | "note" | "guide" | "article" | "update";
 
 export interface ShopRef {
@@ -131,6 +132,7 @@ export interface OrderRow {
   email_note?: string | null;
   delivered_at?: string | null;
   created_at: string;
+  user_id?: string | null;
 }
 
 export interface OrderWithBook extends OrderRow {
@@ -178,6 +180,8 @@ export interface LocalOrder {
   receiptId?: string;
   purchasedAt?: string | null;
   savedAt?: string;
+  /** true = ดึงมาจากบัญชีที่ล็อกอิน (ลบออกจากอุปกรณ์เมื่อออกจากระบบ) */
+  account?: boolean;
 }
 
 export interface ReceiptLine {
@@ -232,4 +236,103 @@ export interface CatalogFilters {
   plats?: Platform[];
   price?: PriceBandId | "";
   rating?: number;
+}
+
+/* ---------- สมาชิก ---------- */
+
+/** ผู้ใช้ที่ล็อกอินอยู่ (ส่งให้หน้าเว็บได้) */
+export interface SessionUser {
+  id: string;
+  email: string;
+  name: string;
+  isAdmin: boolean;
+}
+
+/** คำสั่งซื้อของบัญชีที่ล็อกอิน — GET /api/account/orders */
+export interface AccountOrder {
+  order_no: string;
+  status: OrderStatus;
+  amount: number;
+  customer_name: string;
+  customer_email: string;
+  created_at: string;
+  paid_at?: string | null;
+  book: Pick<BookRow, "id" | "title_th" | "title_en" | "kind" | "version"> | null;
+}
+
+/* ---------- หลังบ้าน ---------- */
+
+/** ข้อมูลสินค้าที่ฟอร์มหลังบ้านส่งมา */
+export interface ProductInput {
+  id: string;
+  title_th: string;
+  title_en: string;
+  short_th: string;
+  short_en: string;
+  long_th: string;
+  long_en: string;
+  author_th: string;
+  author_en: string;
+  price: number;
+  list_price: number;
+  kind: Category;
+  version: string;
+  license: License | null;
+  file_path: string;
+  file_size: string;
+  published: boolean;
+  sort: number;
+  shop_id: string | null;
+}
+
+export interface AdminOrder {
+  order_no: string;
+  status: OrderStatus;
+  amount: number;
+  customer_name: string;
+  customer_email: string;
+  created_at: string;
+  paid_at: string | null;
+  book_id: string;
+  title: string;
+}
+
+export interface AdminCustomer {
+  email: string;
+  name: string;
+  /** true = มีบัญชีสมาชิก, false = ซื้อแบบไม่ล็อกอิน */
+  member: boolean;
+  role: UserRole | null;
+  joined: string | null;
+  orders: number;
+  spent: number;
+}
+
+export interface DailyPoint {
+  /** YYYY-MM-DD (เวลาไทย) */
+  day: string;
+  sales: number;
+  orders: number;
+}
+
+export interface AdminStats {
+  generatedAt: string;
+  sales: number;
+  orders: number;
+  customers: number;
+  products: number;
+  /** เปลี่ยนแปลงเทียบ 30 วันก่อนหน้า (%), null เมื่อไม่มีฐานเปรียบเทียบ */
+  salesChange: number | null;
+  ordersChange: number | null;
+  customersChange: number | null;
+  daily: DailyPoint[];
+  top: { id: string; title: string; kind: string | null; sold: number; revenue: number }[];
+  recent: AdminOrder[];
+}
+
+export interface ImportResult {
+  total: number;
+  created: number;
+  updated: number;
+  errors: { row: number; message: string }[];
 }
