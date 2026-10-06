@@ -10,7 +10,7 @@ import { money, pick } from "@/lib/format";
 import { discountOf } from "@/lib/catalog";
 import type { OrderStatus, PayOptions, Product } from "@/lib/types";
 
-type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "light" | "outline-light";
+type ButtonVariant = "primary" | "success" | "secondary" | "ghost" | "danger" | "light" | "outline-light";
 type ButtonSize = "small";
 
 /** ข้อมูลขั้นต่ำที่การ์ดสินค้าต้องใช้ — รับได้ทั้ง Product เต็มและรายการที่บันทึกไว้ */
@@ -100,7 +100,7 @@ export function Price({ p, size }: { p: { price: number; list_price?: number | n
 }
 
 /**
- * ปุ่ม: variant = primary | secondary | ghost | danger
+ * ปุ่ม: variant = primary | success (ยืนยัน/อนุมัติ) | secondary | ghost | danger
  * loading แสดง spinner + ข้อความ และกันการกดซ้ำ
  */
 interface ButtonStyleProps {
@@ -249,13 +249,15 @@ export function Steps({ active }: { active: number }) {
   );
 }
 
-export function StatusTag({ status }: { status: OrderStatus }) {
+/** slip = ยังไม่ได้จ่ายแต่แนบสลิปแล้ว: แสดงว่า "รอร้านตรวจสลิป" แทน "รอชำระเงิน" */
+export function StatusTag({ status, slip = false }: { status: OrderStatus; slip?: boolean }) {
   const { t } = useLang();
-  const tone = status === "PENDING" ? "amber" : status === "COMPLETED" ? "blue" : "neutral";
+  const review = status === "PENDING" && slip;
+  const tone = review ? "neutral" : status === "PENDING" ? "amber" : status === "COMPLETED" ? "blue" : "neutral";
   return (
     <span className={cx("tag", tone)}>
       <span className="tag-dot" aria-hidden="true" />
-      {t(`st_${status}`)}
+      {t(review ? "st_REVIEW" : `st_${status}`)}
     </span>
   );
 }

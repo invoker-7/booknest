@@ -20,6 +20,8 @@
   --navy-2: #1B3052;
   --on-navy: #E8ECF3;
   --on-navy-2: #A9B6CB;
+  --green: #1F6B45;        /* 6.4:1 กับตัวอักษรขาว */
+  --green-press: #17523A;
   --red: #B3261E;
   --red-soft: #F8E6E4;
   --amber: #7A5200;
@@ -185,11 +187,15 @@ main { min-height: calc(100vh - var(--hdr) - 34px); min-height: calc(100svh - va
 .btn.primary { background: var(--blue); color: #fff; }
 .btn.primary:hover { background: var(--blue-press); }
 .btn.primary:active { background: #0E1F3B; }
-.btn.secondary { border-color: var(--ink); color: var(--ink); background: transparent; }
+/* แต่ละบทบาทมีสีของตัวเอง: หลัก = น้ำเงินทึบ, ยืนยัน/อนุมัติ = เขียวทึบ, รอง = ขอบเข้มพื้นขาว,
+   เบา = พื้นเทา (ยังเห็นเป็นปุ่ม ไม่ใช่ข้อความลอย), อันตราย = แดง */
+.btn.success { background: var(--green); color: #fff; }
+.btn.success:hover { background: var(--green-press); }
+.btn.secondary { border-color: var(--ink); color: var(--ink); background: var(--surface); }
 .btn.secondary:hover { background: var(--ink); color: #fff; }
-.btn.ghost { color: var(--ink); padding: 0 12px; }
-.btn.ghost:hover { background: var(--sunk); }
-.btn.danger { color: var(--red); border-color: var(--red); }
+.btn.ghost { color: var(--blue); background: var(--sunk); border-color: var(--line-2); padding: 0 16px; }
+.btn.ghost:hover { background: var(--blue-soft); border-color: var(--blue); }
+.btn.danger { color: var(--red); border-color: var(--red); background: var(--red-soft); }
 .btn.danger:hover { background: var(--red); color: #fff; }
 .btn.light { background: #fff; color: var(--navy); }
 .btn.light:hover { background: var(--on-navy); }
@@ -202,6 +208,8 @@ main { min-height: calc(100vh - var(--hdr) - 34px); min-height: calc(100svh - va
 }
 .btn[aria-busy="true"] { cursor: progress; background: var(--blue-press); color: #fff; }
 .btn.secondary[aria-busy="true"] { background: var(--ink); }
+.btn.success[aria-busy="true"] { background: var(--green-press); }
+.btn.danger[aria-busy="true"] { background: var(--red); }
 
 .textlink {
   display: inline-flex; align-items: center; gap: 8px; min-height: 44px;
@@ -1017,6 +1025,8 @@ html[lang="th"] .article h1 { line-height: 1.25; }
 .adm-back { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; color: var(--on-navy); }
 .adm-back:hover { text-decoration: underline; text-underline-offset: 4px; }
 button.adm-back { font-size: inherit; text-align: left; }
+.adm-logout { justify-content: center; min-height: 40px; margin-top: 4px; border: 1px solid rgba(255,255,255,.5); font-weight: 600; }
+.adm-logout:hover { background: rgba(255,255,255,.12); border-color: #fff; text-decoration: none; }
 button.adm-back:disabled { opacity: .5; }
 .imgbox { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
 .imgbox-preview { width: 240px; max-width: 100%; aspect-ratio: 4 / 3; overflow: hidden; border: 1px solid var(--line); flex: none; }
@@ -1047,6 +1057,9 @@ button.adm-back:disabled { opacity: .5; }
 .ppay-h { font-size: 18px; font-weight: 600; margin-bottom: 12px; }
 .ppay-steps { list-style: decimal; padding-left: 20px; display: grid; gap: 8px; color: var(--ink-2); }
 .ppay-wait { display: flex; align-items: center; gap: 8px; margin-top: 20px; font-weight: 500; color: var(--blue); }
+.ppay-wait.idle { color: var(--muted); font-weight: 400; }
+.ppay-slip { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+.ppay-slip .hint { font-size: 13px; }
 .ppay-orders { font-size: 12px; margin-top: 8px; }
 @media (max-width: 760px) { .ppay { grid-template-columns: 1fr; gap: 16px; } }
 .role-select { width: auto; min-width: 150px; min-height: 40px; }

@@ -62,7 +62,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
           <span className="mono adm-email" title={email}>{email}</span>
           <LangToggle className="on-dark" />
           <Link href="/" className="adm-back"><ArrowLeft size={16} /> {t("admBackToStore")}</Link>
-          <button type="button" className="adm-back" onClick={leave} disabled={leaving}>{t("logout")}</button>
+          <button type="button" className="adm-back adm-logout" onClick={leave} disabled={leaving}>{t("logout")}</button>
         </div>
       </aside>
 

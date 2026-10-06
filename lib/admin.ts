@@ -1,5 +1,6 @@
 import "server-only";
 import { revalidatePath } from "next/cache";
+import { ordersWithSlip } from "@/lib/slips";
 import { imageBaseUrl, supabaseAdmin } from "@/lib/supabase";
 import { resetCatalogCache } from "@/lib/catalogServer";
 import { categoryOf } from "@/lib/catalog";
@@ -201,7 +202,10 @@ export async function listOrders(page = 1): Promise<{ orders: AdminOrder[]; tota
     .retry(false)
     .returns<OrderJoin[]>();
   if (error) throw new Error(`orders: ${error.message}`);
-  return { orders: (data ?? []).map(toAdminOrder), total: count ?? 0 };
+  const orders = (data ?? []).map(toAdminOrder);
+  // สลิปมีได้เฉพาะคำสั่งซื้อที่ยังไม่จ่าย — ถามเฉพาะรายการเหล่านั้นในหน้านี้
+  const slips = await ordersWithSlip(orders.filter((o) => o.status === "PENDING").map((o) => o.order_no));
+  return { orders: orders.map((o) => ({ ...o, slip: slips.has(o.order_no) })), total: count ?? 0 };
 }
 
 /** คำสั่งซื้อทั้งหมดสำหรับ export (ดึงทีละหน้าจนครบ) */

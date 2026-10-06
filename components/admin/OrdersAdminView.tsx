@@ -83,12 +83,20 @@ export default function OrdersAdminView({ orders, total, page, pageSize }: Order
                     <span className="sub">{o.customer_email}</span>
                   </td>
                   <td className="mono">{fmtDate(o.created_at, lang)} {fmtTime(o.created_at)}</td>
-                  <td><StatusTag status={o.status} /></td>
+                  <td>
+                    <StatusTag status={o.status} slip={o.slip} />
+                    {o.status === "PENDING" && !o.slip && <span className="sub">{t("admNoSlip")}</span>}
+                  </td>
                   <td className="num">{money(o.amount, lang)}</td>
                   <td>
                     {o.status === "PENDING" && (
                       <div className="acts">
-                        <Button variant="secondary" size="small" onClick={() => confirm(o)} loading={busy === o.order_no} loadingText={t("loading")}>
+                        {o.slip && (
+                          <a className="btn ghost small" href={`/api/admin/orders/${encodeURIComponent(o.order_no)}/slip`} target="_blank" rel="noreferrer">
+                            {t("admViewSlip")}
+                          </a>
+                        )}
+                        <Button variant={o.slip ? "success" : "secondary"} size="small" onClick={() => confirm(o)} loading={busy === o.order_no} loadingText={t("loading")}>
                           <Check size={16} /> {t("admConfirmPaid")}
                         </Button>
                       </div>

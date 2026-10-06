@@ -44,6 +44,7 @@ function remember(o: LookupOrder): void {
     kind: o.book.kind,
     amount: o.amount,
     status: o.status,
+    slip: Boolean(o.slip),
     purchasedAt: o.paid_at || o.created_at,
   });
 }
@@ -142,7 +143,14 @@ export default function LibraryView({ products }: LibraryViewProps) {
 
   const actions = (r: LibraryRow) =>
     r.pending ? (
-      <LinkButton href={`/pay/${encodeURIComponent(r.o.orderNo)}`} size="small">{t("completePayment")}</LinkButton>
+      <LinkButton
+        // แนบสลิปแล้ว: ไปหน้า QR ที่แสดงสถานะการตรวจสลิปได้เลย
+        href={r.o.slip ? `/pay-qr?orders=${encodeURIComponent(r.o.orderNo)}` : `/pay/${encodeURIComponent(r.o.orderNo)}`}
+        size="small"
+        variant={r.o.slip ? "secondary" : "primary"}
+      >
+        {t(r.o.slip ? "viewPayStatus" : "completePayment")}
+      </LinkButton>
     ) : (
       <>
         <Button
@@ -235,7 +243,7 @@ export default function LibraryView({ products }: LibraryViewProps) {
                     V{r.latest}
                     {r.updated && <> <span className="tag amber">{t("newVersion")}</span></>}
                   </td>
-                  <td>{r.o.status ? <StatusTag status={r.o.status} /> : "—"}</td>
+                  <td>{r.o.status ? <StatusTag status={r.o.status} slip={r.o.slip} /> : "—"}</td>
                   <td>
                     <div className="acts">{actions(r)}</div>
                     {failed === r.o.orderNo && <p className="err" role="alert">{t("downloadFail")}</p>}
@@ -252,7 +260,7 @@ export default function LibraryView({ products }: LibraryViewProps) {
                 <div className="top">
                   <div className="thumb"><Plate category={r.category} title="" bare /></div>
                   <div>
-                    {r.o.status && <StatusTag status={r.o.status} />}
+                    {r.o.status && <StatusTag status={r.o.status} slip={r.o.slip} />}
                     <strong>{r.title}</strong>
                     <span className="mono">{r.o.orderNo}</span>
                   </div>

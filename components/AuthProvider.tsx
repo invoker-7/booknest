@@ -39,6 +39,7 @@ async function syncAccountOrders(): Promise<void> {
       kind: o.book?.kind,
       amount: o.amount,
       status: o.status,
+      slip: Boolean(o.slip),
       purchasedAt: o.paid_at || o.created_at,
       account: true,
     }))

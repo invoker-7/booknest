@@ -1,19 +1,20 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useLang } from "@/components/LangProvider";
-import { Spinner } from "@/components/Icons";
-import { Empty, LinkButton, Notice, Steps } from "@/components/ui";
-import { fetchPromptPay, type PromptPayState } from "@/lib/apiClient";
-import { money } from "@/lib/format";
+import { Check, Spinner, Upload } from "@/components/Icons";
+import { Button, Empty, LinkButton, Notice, Steps } from "@/components/ui";
+import { fetchPromptPay, uploadSlip, type PromptPayState } from "@/lib/apiClient";
+import { IMAGE_EXTENSIONS, MAX_IMAGE_BYTES, money } from "@/lib/format";
+import type { TKey } from "@/lib/i18n";
 
 // ถามซ้ำว่าร้านยืนยันรับเงินแล้วหรือยัง — หยุดเมื่อแท็บไม่ได้เปิดดูอยู่
 const POLL_MS = 4000;
 
 /**
- * ชำระด้วย QR พร้อมเพย์: แสดง QR ที่ระบุยอดไว้แล้ว และรอเจ้าของร้านยืนยันรับเงินในหลังบ้าน
- * ยืนยันแล้วหน้านี้พาไปหน้าดาวน์โหลดเอง ผู้ซื้อไม่ต้องกดอะไร
+ * ชำระด้วย QR พร้อมเพย์: แสดง QR ที่ระบุยอดไว้แล้ว → ผู้ซื้อโอนแล้วแนบสลิป → เจ้าของร้านตรวจและยืนยันในหลังบ้าน
+ * ยืนยันแล้วหน้านี้พาไปหน้าดาวน์โหลดเอง
  */
 export default function PromptPayView() {
   const { t, lang } = useLang();
@@ -21,10 +22,15 @@ export default function PromptPayView() {
   // undefined = กำลังโหลด, null = เปิดไม่ได้ (ลิงก์ผิด / ร้านไม่ได้เปิดพร้อมเพย์)
   const [state, setState] = useState<PromptPayState | null | undefined>(undefined);
   const [qr, setQr] = useState("");
+  const [orders, setOrders] = useState("");
+  const [sending, setSending] = useState(false);
+  const [slipError, setSlipError] = useState<TKey | "">("");
+  const slipInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const orders = params.get("orders") || "";
+    setOrders(orders);
     const fromCart = params.get("receipt") === "1";
     let alive = true;
 
@@ -54,6 +60,28 @@ export default function PromptPayView() {
     };
   }, [router]);
 
+  async function attach(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setSlipError("");
+
+    const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+    if (!IMAGE_EXTENSIONS.includes(ext)) return setSlipError("admErrImageType");
+    if (file.size > MAX_IMAGE_BYTES) return setSlipError("admErrImageSize");
+
+    setSending(true);
+    try {
+      await uploadSlip(orders, file);
+      // แสดงผลทันที ไม่ต้องรอรอบถามสถานะถัดไป
+      setState((prev) => (prev ? { ...prev, orders: prev.orders.map((o) => ({ ...o, slip: true })) } : prev));
+    } catch {
+      setSlipError("ppSlipFailed");
+    } finally {
+      setSending(false);
+    }
+  }
+
   if (state === undefined) return <div className="wrap page-pad" aria-busy="true" />;
   if (!state) {
     return (
@@ -62,6 +90,8 @@ export default function PromptPayView() {
       </div>
     );
   }
+
+  const hasSlip = state.orders.some((o) => o.status === "PENDING" && o.slip);
 
   return (
     <div className="wrap page-pad">
@@ -84,10 +114,40 @@ export default function PromptPayView() {
               <li>{t("ppStep2")}</li>
               <li>{t("ppStep3")}</li>
             </ol>
-            <p className="ppay-wait" role="status">
-              <Spinner size={16} /> {t("ppWaiting")}
+            <p className={`ppay-wait${hasSlip ? "" : " idle"}`} role="status">
+              {hasSlip ? <><Spinner size={16} /> {t("ppWaiting")}</> : t("ppWaitSlip")}
             </p>
             <p className="mono muted ppay-orders">{state.orders.map((o) => o.orderNo).join(" · ")}</p>
+          </div>
+          <div className="panel">
+            <h2 className="ppay-h">{t("ppSlipTitle")}</h2>
+            <input
+              ref={slipInput}
+              type="file"
+              className="sr-only"
+              tabIndex={-1}
+              accept={IMAGE_EXTENSIONS.map((x) => `.${x}`).join(",")}
+              onChange={attach}
+            />
+            {hasSlip ? (
+              <Notice tone="info" title={<><Check size={16} style={{ display: "inline", verticalAlign: -3 }} /> {t("ppSlipSent")}</>}>
+                {t("ppSlipSentBody")}
+              </Notice>
+            ) : (
+              <p className="muted">{t("ppSlipBody")}</p>
+            )}
+            {slipError && <div style={{ marginTop: 12 }}><Notice tone="error">{t(slipError)}</Notice></div>}
+            <div className="ppay-slip">
+              <Button
+                variant={hasSlip ? "secondary" : "primary"}
+                onClick={() => slipInput.current?.click()}
+                loading={sending}
+                loadingText={t("loading")}
+              >
+                <Upload size={18} /> {t(hasSlip ? "ppSlipAgain" : "ppSlipChoose")}
+              </Button>
+              <span className="hint muted">{t("ppSlipHint")}</span>
+            </div>
           </div>
           <Notice tone="info">{t("ppNote")}</Notice>
           <div style={{ marginTop: 16 }}>

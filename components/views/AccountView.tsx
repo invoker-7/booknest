@@ -52,7 +52,7 @@ export default function AccountView() {
             <h1>{user.name || user.email}</h1>
             <p>{user.email}</p>
           </div>
-          <Button variant="secondary" onClick={leave} loading={leaving} loadingText={t("loading")}>{t("logout")}</Button>
+          <Button variant="danger" onClick={leave} loading={leaving} loadingText={t("loading")}>{t("logout")}</Button>
         </div>
       </header>
 
@@ -102,7 +102,7 @@ export default function AccountView() {
                       )}
                     </td>
                     <td className="mono">{fmtDate(o.purchasedAt || o.savedAt, lang)}</td>
-                    <td>{o.status ? <StatusTag status={o.status} /> : "—"}</td>
+                    <td>{o.status ? <StatusTag status={o.status} slip={o.slip} /> : "—"}</td>
                     <td className="num">{money(o.amount, lang)}</td>
                   </tr>
                 ))}

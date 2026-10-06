@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { normalizeOrderNo } from "@/lib/api";
 import { isPromptPayEnabled, promptPayMasked, promptPayQr } from "@/lib/promptpay";
 import { MAX_CHECKOUT_ORDERS } from "@/lib/payments";
+import { ordersWithSlip } from "@/lib/slips";
 import { isSupabaseConfigured, supabaseAdmin } from "@/lib/supabase";
 import type { OrderStatus } from "@/lib/types";
 
@@ -12,7 +13,7 @@ export const fetchCache = "force-no-store";
 
 /**
  * GET /api/checkout/promptpay?orders=ORD-1,ORD-2[&qr=1]
- *   -> { orders: [{ orderNo, status }], amount, account, qr? }
+ *   -> { orders: [{ orderNo, status, slip }], amount, account, qr? }
  * หน้า /pay-qr ใช้ทั้งขอ QR (qr=1) และถามซ้ำว่าร้านยืนยันรับเงินแล้วหรือยัง
  * เปิดได้ด้วยเลขคำสั่งซื้ออย่างเดียว จึงคืนแค่สถานะกับยอดรวม ไม่มีชื่อหรืออีเมลผู้ซื้อ
  */
@@ -39,10 +40,11 @@ export async function GET(req: Request) {
   // ยอดใน QR = เฉพาะคำสั่งซื้อที่ยังไม่ได้จ่าย
   const amount = data.filter((o) => o.status === "PENDING").reduce((sum, o) => sum + o.amount, 0);
   const wantQr = searchParams.get("qr") === "1" && amount > 0;
+  const slips = await ordersWithSlip(data.filter((o) => o.status === "PENDING").map((o) => o.order_no));
 
   return NextResponse.json(
     {
-      orders: orderNos.map((no) => ({ orderNo: no, status: data.find((o) => o.order_no === no)?.status })),
+      orders: orderNos.map((no) => ({ orderNo: no, status: data.find((o) => o.order_no === no)?.status, slip: slips.has(no) })),
       amount,
       account: promptPayMasked(),
       ...(wantQr ? { qr: await promptPayQr(amount) } : {}),

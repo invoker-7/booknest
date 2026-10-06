@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ordersWithSlip } from "@/lib/slips";
 import { getSessionUser } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import type { AccountOrder } from "@/lib/types";
@@ -29,5 +30,10 @@ export async function GET() {
     console.error("account orders:", error.message);
     return NextResponse.json({ error: "load_failed" }, { status: 500 });
   }
-  return NextResponse.json({ orders: data ?? [] }, { headers: { "Cache-Control": "private, no-store" } });
+  const orders = data ?? [];
+  const slips = await ordersWithSlip(orders.filter((o) => o.status === "PENDING").map((o) => o.order_no));
+  return NextResponse.json(
+    { orders: orders.map((o) => ({ ...o, slip: slips.has(o.order_no) })) },
+    { headers: { "Cache-Control": "private, no-store" } }
+  );
 }

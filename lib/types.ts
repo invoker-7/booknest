@@ -159,6 +159,8 @@ export interface LookupOrder {
   paid_at?: string | null;
   delivered_at?: string | null;
   email_sent?: boolean | null;
+  /** ยังไม่ได้จ่าย แต่แนบสลิปแล้ว รอร้านตรวจ */
+  slip?: boolean;
   book: BookRow;
 }
 
@@ -175,6 +177,8 @@ export interface LocalOrder {
   kind?: string | null;
   version?: string;
   status?: OrderStatus;
+  /** ยังไม่ได้จ่าย แต่แนบสลิปแล้ว รอร้านตรวจ */
+  slip?: boolean;
   receiptId?: string;
   purchasedAt?: string | null;
   savedAt?: string;
@@ -258,6 +262,8 @@ export interface AccountOrder {
   customer_email: string;
   created_at: string;
   paid_at?: string | null;
+  /** ยังไม่ได้จ่าย แต่แนบสลิปแล้ว รอร้านตรวจ */
+  slip?: boolean;
   book: Pick<BookRow, "id" | "title_th" | "title_en" | "kind" | "version"> | null;
 }
 
@@ -298,6 +304,8 @@ export interface AdminOrder {
   paid_at: string | null;
   book_id: string;
   title: string;
+  /** ยังไม่ได้จ่าย แต่ผู้ซื้อแนบสลิปแล้ว */
+  slip?: boolean;
 }
 
 export interface AdminCustomer {

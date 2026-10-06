@@ -51,13 +51,29 @@ export type CheckoutStart =
 export const startCheckout = (orderNos: string[]) => postJson<CheckoutStart>("/api/checkout", { orderNos });
 
 export interface PromptPayState {
-  orders: { orderNo: string; status: OrderStatus }[];
+  orders: { orderNo: string; status: OrderStatus; slip: boolean }[];
   /** ยอดที่ยังต้องจ่าย (บาท) */
   amount: number;
   /** เบอร์พร้อมเพย์ของร้านแบบปิดบางส่วน */
   account: string;
   /** QR เป็น SVG — มีเมื่อขอด้วย withQr */
   qr?: string;
+}
+
+/**
+ * แนบสลิปโอนเงินให้คำสั่งซื้อชุดนี้ — ขอ URL อัปโหลดจาก server แล้วส่งรูปตรงไปที่ Storage
+ * โยน Error(code) เมื่อไม่สำเร็จ (image_type, image_too_large, already_paid, upload_failed)
+ */
+export async function uploadSlip(orders: string, file: File): Promise<void> {
+  const { uploads } = await postJson<{ uploads: { orderNo: string; url: string }[] }>("/api/checkout/slip", {
+    orders,
+    filename: file.name,
+    size: file.size,
+  });
+  const sent = await Promise.all(
+    uploads.map((u) => fetch(u.url, { method: "PUT", headers: { "Content-Type": file.type || "image/jpeg" }, body: file }))
+  );
+  if (sent.some((res) => !res.ok)) throw new Error("upload_failed");
 }
 
 /** QR พร้อมเพย์และสถานะของคำสั่งซื้อชุดนี้ — คืน null เมื่อเปิดไม่ได้ */

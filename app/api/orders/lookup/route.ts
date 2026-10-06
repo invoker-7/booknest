@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { findSlip } from "@/lib/slips";
 import { supabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { normalizeEmail, normalizeOrderNo, readJsonBody } from "@/lib/api";
 import { isEmail } from "@/lib/format";
@@ -51,6 +52,7 @@ export async function POST(req: Request) {
     paid_at: data.paid_at,
     delivered_at: data.delivered_at,
     email_sent: data.email_sent,
+    slip: data.status === "PENDING" && Boolean(await findSlip(data.order_no)),
     book: data.book,
   };
 
