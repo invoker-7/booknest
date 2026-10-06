@@ -27,6 +27,9 @@ const ADMIN_EMAILS = new Set(
     .filter(Boolean)
 );
 
+/** อีเมลผู้ดูแลจาก env — ใช้ส่งแจ้งเตือนของร้าน (เช่น มีสลิปรอตรวจ) */
+export const adminEmails = (): string[] => [...ADMIN_EMAILS];
+
 /** ผู้ดูแลที่กำหนดใน env — เป็น admin เสมอ ไม่ขึ้นกับ role ในฐานข้อมูล */
 export const isEnvAdmin = (email: string): boolean => ADMIN_EMAILS.has(email.trim().toLowerCase());
 

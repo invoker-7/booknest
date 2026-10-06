@@ -337,6 +337,18 @@ export interface DailyPoint {
   orders: number;
 }
 
+/** งานที่รอผู้ดูแลจัดการ — ใช้แสดงตัวเลขแจ้งเตือนในหลังบ้าน */
+export interface AdminTodo {
+  /** แนบสลิปแล้ว รอตรวจและยืนยันรับเงิน */
+  review: number;
+  /** สั่งซื้อแล้วแต่ยังไม่แนบสลิป (ยังไม่ต้องทำอะไร) */
+  unpaid: number;
+  /** ยืนยันรับเงินแล้วแต่อีเมลส่งไฟล์ไม่ถึงผู้ซื้อ */
+  undelivered: number;
+}
+
+export type OrderFilter = "all" | "review" | "unpaid" | "undelivered";
+
 export type ActivityKind = "order_created" | "order_paid" | "order_delivered" | "email_failed" | "member_joined";
 
 /** หนึ่งเหตุการณ์ในบันทึกกิจกรรม (ประกอบจากเวลาที่บันทึกไว้ในคำสั่งซื้อและบัญชีสมาชิก) */

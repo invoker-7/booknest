@@ -66,6 +66,50 @@ export async function sendDownloadEmail({
   }
 }
 
+export interface SlipNotice {
+  /** อีเมลผู้ดูแลร้าน */
+  to: string[];
+  orderNos: string[];
+  /** ยอดรวม (บาท) */
+  amount: number;
+  customer: string;
+  /** ลิงก์ไปหน้าคำสั่งซื้อที่รอตรวจสลิป */
+  link: string;
+}
+
+/** แจ้งเจ้าของร้านว่ามีสลิปรอตรวจ — ไม่ได้ตั้ง SMTP ก็ข้ามไป (ร้านยังเห็นตัวเลขแจ้งเตือนในหลังบ้าน) */
+export async function sendSlipNotice({ to, orderNos, amount, customer, link }: SlipNotice): Promise<void> {
+  if (!SMTP_USER || !SMTP_PASS || !FROM || to.length === 0) return;
+  const total = `฿ ${amount.toLocaleString("en-US")}`;
+  try {
+    await getTransporter().sendMail({
+      from: FROM,
+      to,
+      subject: `VECTOR — มีสลิปรอตรวจ ${orderNos[0]} (${total})`,
+      text: `มีสลิปโอนเงินรอตรวจ\nคำสั่งซื้อ: ${orderNos.join(", ")}\nยอดรวม: ${total}\nผู้ซื้อ: ${customer}\n\nตรวจสลิปและยืนยันรับเงิน: ${link}`,
+      html: `<!doctype html>
+<html lang="th"><body style="margin:0;padding:24px;background:#F4F3EF;
+  font-family:'IBM Plex Sans','Helvetica Neue',Arial,'IBM Plex Sans Thai','Noto Sans Thai',sans-serif;color:#17191C">
+  <div style="max-width:520px;margin:0 auto;background:#ffffff;border:1px solid #D9D9D5;padding:32px">
+    <div style="font-size:18px;font-weight:700;letter-spacing:.22em;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #17191C">VECTOR</div>
+    <div style="font-size:12px;color:#1F3A68;letter-spacing:.16em;margin-bottom:8px">ACTION NEEDED</div>
+    <h1 style="margin:0 0 16px;font-size:22px;font-weight:500">มีสลิปโอนเงินรอตรวจ</h1>
+    <table style="width:100%;font-size:15px;line-height:1.7;border-collapse:collapse;margin-bottom:24px">
+      <tr><td style="color:#5C6066;width:110px">คำสั่งซื้อ</td><td style="font-family:Menlo,Consolas,monospace">${escapeHtml(orderNos.join(", "))}</td></tr>
+      <tr><td style="color:#5C6066">ยอดรวม</td><td><strong>${escapeHtml(total)}</strong></td></tr>
+      <tr><td style="color:#5C6066">ผู้ซื้อ</td><td>${escapeHtml(customer)}</td></tr>
+    </table>
+    <a href="${escapeHtml(link)}" style="display:inline-block;background:#1F6B45;color:#ffffff;text-decoration:none;
+       padding:14px 26px;font-weight:600;font-size:13px;letter-spacing:.1em">ตรวจสลิปและยืนยันรับเงิน</a>
+    <p style="margin:20px 0 0;font-size:13px;color:#5C6066;line-height:1.6">ผู้ซื้อจะได้ไฟล์หลังจากคุณกดยืนยันเท่านั้น</p>
+  </div>
+</body></html>`,
+    });
+  } catch (err) {
+    console.error("gmail smtp error:", err);
+  }
+}
+
 export interface OtpEmail {
   to: string;
   name: string;

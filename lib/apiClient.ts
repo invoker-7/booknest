@@ -74,6 +74,8 @@ export async function uploadSlip(orders: string, file: File): Promise<void> {
     uploads.map((u) => fetch(u.url, { method: "PUT", headers: { "Content-Type": file.type || "image/jpeg" }, body: file }))
   );
   if (sent.some((res) => !res.ok)) throw new Error("upload_failed");
+  // แจ้งร้านทางอีเมลว่ามีสลิปรอตรวจ — พลาดก็ไม่เป็นไร ร้านยังเห็นตัวเลขแจ้งเตือนในหลังบ้าน
+  void postJson("/api/checkout/slip/done", { orders }).catch(() => {});
 }
 
 /** QR พร้อมเพย์และสถานะของคำสั่งซื้อชุดนี้ — คืน null เมื่อเปิดไม่ได้ */

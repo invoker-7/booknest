@@ -1,6 +1,6 @@
 import "server-only";
 import { revalidatePath } from "next/cache";
-import { ordersWithSlip } from "@/lib/slips";
+import { ordersWithSlip, slipOrderNos } from "@/lib/slips";
 import { imageBaseUrl, supabaseAdmin } from "@/lib/supabase";
 import { resetCatalogCache } from "@/lib/catalogServer";
 import { categoryOf } from "@/lib/catalog";
@@ -10,9 +10,11 @@ import type {
   AdminOrder,
   AdminReport,
   AdminStats,
+  AdminTodo,
   AdminUser,
   BookRow,
   License,
+  OrderFilter,
   OrderStatus,
   UserRole,
   ProductInput,
@@ -192,11 +194,42 @@ export async function listShops(): Promise<ShopRef[]> {
   return data ?? [];
 }
 
-export async function listOrders(page = 1): Promise<{ orders: AdminOrder[]; total: number }> {
+/** งานที่รอผู้ดูแลจัดการ (สองคำขอ: รายชื่อคำสั่งซื้อที่มีสลิป + นับสถานะ) */
+export async function loadTodo(): Promise<AdminTodo> {
+  const db = supabaseAdmin();
+  const withSlip = await slipOrderNos();
+  const count = (query: PromiseLike<{ count: number | null; error: { message: string } | null }>) =>
+    Promise.resolve(query).then(({ count: n, error }) => {
+      if (error) throw new Error(`todo: ${error.message}`);
+      return n ?? 0;
+    });
+  const head = () => db.from("orders").select("id", { count: "exact", head: true });
+
+  const [review, pending, undelivered] = await Promise.all([
+    withSlip.length ? count(head().eq("status", "PENDING").in("order_no", withSlip)) : 0,
+    count(head().eq("status", "PENDING")),
+    count(head().eq("status", "PAID")),
+  ]);
+  return { review, unpaid: pending - review, undelivered };
+}
+
+export async function listOrders(page = 1, filter: OrderFilter = "all"): Promise<{ orders: AdminOrder[]; total: number }> {
   const from = (Math.max(page, 1) - 1) * ORDER_PAGE_SIZE;
-  const { data, error, count } = await supabaseAdmin()
-    .from("orders")
-    .select(ORDER_COLUMNS, { count: "exact" })
+  let query = supabaseAdmin().from("orders").select(ORDER_COLUMNS, { count: "exact" });
+
+  if (filter === "undelivered") query = query.eq("status", "PAID");
+  if (filter === "review" || filter === "unpaid") {
+    const withSlip = await slipOrderNos();
+    query = query.eq("status", "PENDING");
+    if (filter === "review") {
+      if (withSlip.length === 0) return { orders: [], total: 0 };
+      query = query.in("order_no", withSlip);
+    } else if (withSlip.length) {
+      query = query.not("order_no", "in", `(${withSlip.map((no) => `"${no}"`).join(",")})`);
+    }
+  }
+
+  const { data, error, count } = await query
     .order("created_at", { ascending: false })
     .range(from, from + ORDER_PAGE_SIZE - 1)
     .retry(false)

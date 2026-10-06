@@ -1,12 +1,23 @@
 import OrdersAdminView from "@/components/admin/OrdersAdminView";
 import { listOrders, ORDER_PAGE_SIZE } from "@/lib/admin";
 import { withAdmin } from "@/lib/auth";
+import type { OrderFilter } from "@/lib/types";
 
 export const metadata = { title: "Orders" };
 
-export default async function AdminOrdersPage({ searchParams }: { searchParams?: { page?: string | string[] } }) {
-  const raw = searchParams?.page;
-  const page = Math.max(1, Math.floor(Number(Array.isArray(raw) ? raw[0] : raw)) || 1);
-  const { data: { orders, total } } = await withAdmin("/admin/orders", () => listOrders(page));
-  return <OrdersAdminView orders={orders} total={total} page={page} pageSize={ORDER_PAGE_SIZE} />;
+const FILTERS: OrderFilter[] = ["all", "review", "unpaid", "undelivered"];
+
+interface OrdersPageProps {
+  searchParams?: { page?: string | string[]; filter?: string | string[] };
+}
+
+const first = (v?: string | string[]) => (Array.isArray(v) ? v[0] : v);
+
+export default async function AdminOrdersPage({ searchParams }: OrdersPageProps) {
+  const page = Math.max(1, Math.floor(Number(first(searchParams?.page))) || 1);
+  const wanted = first(searchParams?.filter);
+  const filter = FILTERS.find((f) => f === wanted) ?? "all";
+
+  const { data: { orders, total } } = await withAdmin("/admin/orders", () => listOrders(page, filter));
+  return <OrdersAdminView orders={orders} total={total} page={page} pageSize={ORDER_PAGE_SIZE} filter={filter} />;
 }

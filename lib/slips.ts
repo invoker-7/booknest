@@ -34,6 +34,26 @@ export async function findSlip(orderNo: string): Promise<string | null> {
   return `${orderNo}/${data[0].name}`;
 }
 
+/**
+ * เลขคำสั่งซื้อทั้งหมดที่เคยมีสลิป ใหม่สุดก่อน (หนึ่งคำขอ — ชื่อโฟลเดอร์คือเลขคำสั่งซื้อ ซึ่งขึ้นต้นด้วยวันที่)
+ * ใช้นับงานรอตรวจของหลังบ้านโดยไม่ต้องถามทีละคำสั่งซื้อ
+ */
+export async function slipOrderNos(limit = 500): Promise<string[]> {
+  const { data, error } = await supabaseAdmin()
+    .storage.from(SLIP_BUCKET)
+    .list("", { limit, sortBy: { column: "name", order: "desc" } });
+  if (error || !data) return []; // ยังไม่เคยมีใครแนบสลิป
+  return data.map((entry) => entry.name);
+}
+
+/** true = คำสั่งซื้อนี้มีสลิปใบเดียวและเพิ่งแนบ (ไม่เกิน 5 นาที) — ใช้ตัดสินว่าจะแจ้งร้านทางอีเมลหรือไม่ */
+export async function isFirstFreshSlip(orderNo: string): Promise<boolean> {
+  const { data, error } = await supabaseAdmin().storage.from(SLIP_BUCKET).list(orderNo, { limit: 2 });
+  if (error || data?.length !== 1) return false;
+  const created = Date.parse(data[0].created_at ?? "");
+  return Number.isFinite(created) && Date.now() - created < 5 * 60_000;
+}
+
 /** เลขคำสั่งซื้อที่แนบสลิปแล้ว จากชุดที่ถาม (ถามพร้อมกัน — ใช้กับคำสั่งซื้อที่ยังไม่จ่ายเท่านั้น จึงมีไม่กี่รายการ) */
 export async function ordersWithSlip(orderNos: string[]): Promise<Set<string>> {
   const found = await Promise.all(orderNos.map(async (no) => ((await findSlip(no)) ? no : null)));

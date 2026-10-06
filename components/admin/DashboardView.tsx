@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useLang } from "@/components/LangProvider";
-import { AdminHead } from "@/components/admin/AdminShell";
+import { AdminHead, useAdminTodo } from "@/components/admin/AdminShell";
 import SalesChart from "@/components/admin/SalesChart";
 import { StatusTag } from "@/components/ui";
 import { fmtDate, fmtTime, money } from "@/lib/format";
@@ -27,6 +27,7 @@ export default function DashboardView({ initial }: { initial: AdminStats }) {
   const { t, lang } = useLang();
   const [stats, setStats] = useState(initial);
   const [stale, setStale] = useState(false);
+  const { todo } = useAdminTodo();
 
   useEffect(() => {
     let alive = true;
@@ -69,6 +70,41 @@ export default function DashboardView({ initial }: { initial: AdminStats }) {
           </span>
         }
       />
+
+      {todo && todo.review + todo.undelivered + todo.unpaid > 0 && (
+        <section className={`todo${todo.review + todo.undelivered > 0 ? " hot" : ""}`} aria-labelledby="adm-todo">
+          <h2 id="adm-todo">{t("admTodo")}</h2>
+          <ul>
+            {todo.review > 0 && (
+              <li>
+                <Link href="/admin/orders?filter=review" className="todo-item act">
+                  <strong>{todo.review}</strong>
+                  <span>{t("admTodoReview")}</span>
+                  <span className="todo-go">{t("admTodoReviewGo")} →</span>
+                </Link>
+              </li>
+            )}
+            {todo.undelivered > 0 && (
+              <li>
+                <Link href="/admin/orders?filter=undelivered" className="todo-item act">
+                  <strong>{todo.undelivered}</strong>
+                  <span>{t("admTodoUndelivered")}</span>
+                  <span className="todo-go">{t("viewAll")} →</span>
+                </Link>
+              </li>
+            )}
+            {todo.unpaid > 0 && (
+              <li>
+                <Link href="/admin/orders?filter=unpaid" className="todo-item">
+                  <strong>{todo.unpaid}</strong>
+                  <span>{t("admTodoUnpaid")}</span>
+                  <span className="todo-go">{t("viewAll")} →</span>
+                </Link>
+              </li>
+            )}
+          </ul>
+        </section>
+      )}
 
       <dl className="kpis">
         {kpis.map((k) => (

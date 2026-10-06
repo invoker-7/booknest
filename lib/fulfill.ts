@@ -33,10 +33,9 @@ export async function loadOrders(orderNos: string[]): Promise<OrderWithBook[]> {
 export async function fulfillOrder(order: OrderWithBook): Promise<FulfillResult> {
   if (order.status !== "PENDING") return { status: order.status, alreadyPaid: true };
 
-  const db = supabaseAdmin();
   const orderNo = order.order_no;
 
-  const { data: claimed, error: payErr } = await db
+  const { data: claimed, error: payErr } = await supabaseAdmin()
     .from("orders")
     .update({ status: "PAID", paid_at: new Date().toISOString() })
     .eq("order_no", orderNo)
@@ -45,7 +44,12 @@ export async function fulfillOrder(order: OrderWithBook): Promise<FulfillResult>
   if (payErr) throw new Error(`fulfill ${orderNo}: ${payErr.message}`);
   if (!claimed?.length) return { status: "PAID", alreadyPaid: true };
 
-  // ลิงก์ชั่วคราวจาก bucket private (24 ชั่วโมง)
+  return deliver(order);
+}
+
+/** สร้างลิงก์ดาวน์โหลดชั่วคราว (24 ชั่วโมง) ส่งอีเมล แล้วบันทึกผลการจัดส่ง */
+async function deliver(order: OrderWithBook): Promise<FulfillResult> {
+  const orderNo = order.order_no;
   let downloadUrl: string | null = null;
   try {
     downloadUrl = (await createDownloadLink(order.book.file_path ?? "")).url;
@@ -63,7 +67,7 @@ export async function fulfillOrder(order: OrderWithBook): Promise<FulfillResult>
   const delivered = mail.status === "sent" || mail.status === "mock";
   const status: OrderStatus = delivered ? "COMPLETED" : "PAID";
 
-  await db
+  await supabaseAdmin()
     .from("orders")
     .update({
       status,
@@ -74,6 +78,12 @@ export async function fulfillOrder(order: OrderWithBook): Promise<FulfillResult>
     .eq("order_no", orderNo);
 
   return { status, emailStatus: mail.status };
+}
+
+/** ส่งอีเมลลิงก์ดาวน์โหลดอีกครั้งให้คำสั่งซื้อที่จ่ายแล้ว (เจ้าของร้านกดจากหลังบ้านเมื่ออีเมลรอบแรกส่งไม่ถึง) */
+export async function redeliverOrder(order: OrderWithBook): Promise<FulfillResult> {
+  if (order.status === "PENDING") throw new Error(`redeliver ${order.order_no}: not paid`);
+  return deliver(order);
 }
 
 /** จัดส่งหลายคำสั่งซื้อพร้อมกัน (ตะกร้าเดียว จ่ายครั้งเดียว) */
