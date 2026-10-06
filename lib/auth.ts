@@ -27,6 +27,9 @@ const ADMIN_EMAILS = new Set(
     .filter(Boolean)
 );
 
+/** ผู้ดูแลที่กำหนดใน env — เป็น admin เสมอ ไม่ขึ้นกับ role ในฐานข้อมูล */
+export const isEnvAdmin = (email: string): boolean => ADMIN_EMAILS.has(email.trim().toLowerCase());
+
 /** client ที่ผูกกับ cookie ของ request นี้ — ใช้ได้ใน route handler, middleware ไม่ได้ใช้ตัวนี้ */
 export function supabaseSession(): SupabaseClient {
   if (!url || !anon) throw new Error("ยังไม่ได้ตั้งค่า SUPABASE_URL และ SUPABASE_PUBLISHABLE_KEY");
@@ -113,7 +116,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
       id: user.id,
       email,
       name: profile?.name || user.name,
-      isAdmin: profile?.role === "admin" || ADMIN_EMAILS.has(email),
+      isAdmin: profile?.role === "admin" || isEnvAdmin(email),
     };
   } catch (error) {
     console.error("getSessionUser:", error instanceof Error ? error.message : error);

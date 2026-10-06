@@ -7,9 +7,11 @@ import type {
   AdminCustomer,
   AdminOrder,
   AdminStats,
+  AdminUser,
   BookRow,
   License,
   OrderStatus,
+  UserRole,
   ProductInput,
   ShopRef,
 } from "@/lib/types";
@@ -147,6 +149,55 @@ export async function listCustomers(): Promise<AdminCustomer[]> {
   const { data, error } = await supabaseAdmin().rpc("admin_customers").retry(false);
   if (error) throw new Error(`customers: ${error.message}`);
   return (data ?? []) as AdminCustomer[];
+}
+
+/* ---------- ผู้ใช้ (สมาชิก) ---------- */
+
+type UserRow = Omit<AdminUser, "locked" | "joined"> & { created_at: string | null };
+
+const toAdminUser = (row: UserRow, isLocked: (email: string) => boolean): AdminUser => ({
+  id: row.id,
+  email: row.email,
+  name: row.name || "",
+  role: isLocked(row.email) ? "admin" : row.role,
+  joined: row.created_at,
+  locked: isLocked(row.email),
+});
+
+/** สมาชิกทั้งหมด ใหม่สุดก่อน — isLocked บอกว่าอีเมลไหนเป็นผู้ดูแลจาก env */
+export async function listUsers(isLocked: (email: string) => boolean): Promise<AdminUser[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("profiles")
+    .select("id, email, name, role, created_at")
+    .order("created_at", { ascending: false })
+    .retry(false)
+    .returns<UserRow[]>();
+  if (error) throw new Error(`users: ${error.message}`);
+  return (data ?? []).map((row) => toAdminUser(row, isLocked));
+}
+
+export async function getUserRow(id: string): Promise<{ id: string; email: string; role: UserRole } | null> {
+  const { data } = await supabaseAdmin()
+    .from("profiles")
+    .select("id, email, role")
+    .eq("id", id)
+    .retry(false)
+    .maybeSingle<{ id: string; email: string; role: UserRole }>();
+  return data ?? null;
+}
+
+/** เปลี่ยนสิทธิ์ของสมาชิก — คืน false เมื่อบันทึกไม่สำเร็จ */
+export async function setUserRole(id: string, role: UserRole): Promise<boolean> {
+  const { error } = await supabaseAdmin().from("profiles").update({ role }).eq("id", id);
+  if (error) console.error("setUserRole:", error.message);
+  return !error;
+}
+
+/** ลบบัญชี (โปรไฟล์และรหัส OTP ถูกลบตาม, คำสั่งซื้อเดิมยังอยู่แต่ไม่ผูกกับบัญชี) */
+export async function deleteUser(id: string): Promise<boolean> {
+  const { error } = await supabaseAdmin().auth.admin.deleteUser(id);
+  if (error) console.error("deleteUser:", error.message);
+  return !error;
 }
 
 /* ---------- ตรวจข้อมูลสินค้า (ใช้ทั้งฟอร์มและ import) ---------- */

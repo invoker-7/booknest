@@ -47,8 +47,13 @@ export default function AccountView() {
           <li><Link href="/">VECTOR</Link></li>
           <li aria-current="page">{t("navAccount")}</li>
         </ol>
-        <h1>{user.name || user.email}</h1>
-        <p>{user.email}</p>
+        <div className="phead-row">
+          <div>
+            <h1>{user.name || user.email}</h1>
+            <p>{user.email}</p>
+          </div>
+          <Button variant="secondary" onClick={leave} loading={leaving} loadingText={t("loading")}>{t("logout")}</Button>
+        </div>
       </header>
 
       <dl className="cp-stats acct-stats">
@@ -61,7 +66,6 @@ export default function AccountView() {
       <div className="done-actions" style={{ marginTop: 24 }}>
         <LinkButton href="/library">{t("navLibrary")} <Arrow size={18} /></LinkButton>
         {user.isAdmin && <a className="btn secondary" href="/admin">{t("navAdmin")}</a>}
-        <Button variant="ghost" onClick={leave} loading={leaving} loadingText={t("loading")}>{t("logout")}</Button>
       </div>
 
       <section className="acct-history" aria-labelledby="acct-history">

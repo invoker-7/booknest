@@ -30,3 +30,7 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# desktop app (Electron)
+/desktop/node_modules
+/desktop/dist

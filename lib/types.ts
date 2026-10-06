@@ -308,6 +308,17 @@ export interface AdminCustomer {
   spent: number;
 }
 
+/** สมาชิกหนึ่งบัญชีในหน้าจัดการผู้ใช้ */
+export interface AdminUser {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  joined: string | null;
+  /** เป็นผู้ดูแลจาก ADMIN_EMAILS — เปลี่ยนสิทธิ์หรือลบจากหน้าเว็บไม่ได้ */
+  locked: boolean;
+}
+
 export interface DailyPoint {
   /** YYYY-MM-DD (เวลาไทย) */
   day: string;

@@ -37,6 +37,22 @@ VECTOR เป็นร้านขายสินค้าดิจิทัล�
 - สถิติ Dashboard รวมยอดในฐานข้อมูล (`admin_stats`) ไม่ดึงคำสั่งซื้อทั้งหมดออกมานับ
 - ไฟล์สินค้าอัปโหลดจากเบราว์เซอร์ตรงไป Storage ผ่าน signed URL ไม่ผ่าน serverless function
 
+## แอป Desktop และ Mobile
+
+ทั้งสองแอปเป็นตัวห่อที่เปิดเว็บร้านที่ deploy แล้ว จึงได้ฟีเจอร์เท่าเว็บและไม่ต้องดูแลโค้ดร้านซ้ำ
+
+- **Desktop (Electron, MIT):** อยู่ในโฟลเดอร์ [desktop/](desktop/) ตั้งที่อยู่เว็บใน `desktop/config.json`
+
+  ```bash
+  cd desktop
+  npm install
+  npm start        # เปิดแอป
+  npm run dist     # สร้างตัวติดตั้งของระบบปฏิบัติการที่กำลังใช้ (ผลอยู่ใน desktop/dist)
+  ```
+
+  ลิงก์นอกร้านเปิดในเบราว์เซอร์ของเครื่อง และมีหน้าแจ้งเมื่อเชื่อมต่อร้านไม่ได้
+- **Mobile (MIT App Inventor):** โปรเจกต์ Android ที่มี `WebViewer` หนึ่งตัว ตั้ง `HomeUrl` เป็นที่อยู่เว็บ และใช้ `Screen1.BackPressed` เพื่อย้อนหน้า
+
 ## Tech stack
 
 | ส่วน | ใช้อะไร |
