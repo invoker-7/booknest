@@ -9,7 +9,7 @@ export const config = { matcher: ["/admin/:path*"] };
 
 export async function middleware(req: NextRequest) {
   const url = process.env.SUPABASE_URL;
-  const anon = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
+  const anon = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY;
   const login = () => {
     const to = req.nextUrl.clone();
     to.pathname = "/login";

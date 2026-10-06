@@ -44,9 +44,6 @@ export function maskEmail(email: string | null | undefined): string {
 export const isEmail = (v: unknown): boolean =>
   /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(v).trim());
 
-/** ความยาวรหัสผ่านขั้นต่ำ (ตรวจทั้งฟอร์มและ API) */
-export const MIN_PASSWORD = 8;
-
 /** ไฟล์สินค้าที่หลังบ้านอัปโหลดได้ (ตรวจทั้งฟอร์มและ API) */
 export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 export const UPLOAD_EXTENSIONS = ["pdf", "zip", "epub", "fig", "docx", "xlsx", "pptx", "png", "jpg", "svg", "mp4", "txt", "md", "json"];

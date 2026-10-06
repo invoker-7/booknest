@@ -3,17 +3,19 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createServerClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { hasOtpCookie, isOtpVerified } from "@/lib/otp";
 import { isSupabaseConfigured, supabaseAdmin } from "@/lib/supabase";
 import type { SessionUser, UserRole } from "@/lib/types";
 
 /**
  * การยืนยันตัวตนทั้งหมดทำที่ฝั่ง server
+ * - เข้าสู่ระบบได้ทางเดียวคือ Google แล้วต้องผ่านรหัส OTP ทางอีเมลอีกชั้น (lib/otp.ts) จึงนับว่าล็อกอิน
  * - session เก็บใน cookie แบบ httpOnly (เบราว์เซอร์ไม่ต้องโหลด Supabase SDK และ JavaScript อ่าน token ไม่ได้)
  * - ใช้ anon key สำหรับ session ของผู้ใช้ ส่วน secret key ใช้เฉพาะงานที่ตรวจสิทธิ์แล้ว
  */
 
 const url = process.env.SUPABASE_URL;
-const anon = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
+const anon = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY;
 
 export const isAuthConfigured = Boolean(isSupabaseConfigured && anon);
 export const isGoogleEnabled = isAuthConfigured && process.env.AUTH_GOOGLE_ENABLED === "true";
@@ -27,7 +29,7 @@ const ADMIN_EMAILS = new Set(
 
 /** client ที่ผูกกับ cookie ของ request นี้ — ใช้ได้ใน route handler, middleware ไม่ได้ใช้ตัวนี้ */
 export function supabaseSession(): SupabaseClient {
-  if (!url || !anon) throw new Error("ยังไม่ได้ตั้งค่า SUPABASE_URL และ SUPABASE_ANON_KEY");
+  if (!url || !anon) throw new Error("ยังไม่ได้ตั้งค่า SUPABASE_URL และ SUPABASE_PUBLISHABLE_KEY");
   const store = cookies();
   return createServerClient(url, anon, {
     cookies: {
@@ -60,8 +62,14 @@ export function setSignedInHint(on: boolean): void {
 /** มี cookie session ไหม — ผู้ที่ไม่ได้ล็อกอินไม่ต้องเสียเวลายิงไปถาม Supabase Auth */
 const hasSessionCookie = () => cookies().getAll().some((c) => c.name.startsWith("sb-") && c.name.includes("-auth-token"));
 
-/** ตรวจ token กับ Supabase Auth — คืนเฉพาะ id + อีเมล (เร็วกว่า getSessionUser หนึ่ง query) */
-export async function getSessionIdentity(): Promise<{ id: string; email: string; name: string } | null> {
+export interface SessionIdentity {
+  id: string;
+  email: string;
+  name: string;
+}
+
+/** ตรวจ token กับ Supabase Auth — ยังไม่ดูว่าผ่าน OTP หรือยัง */
+async function readIdentity(): Promise<SessionIdentity | null> {
   if (!isAuthConfigured || !hasSessionCookie()) return null;
   try {
     const { data, error } = await supabaseSession().auth.getUser();
@@ -70,9 +78,22 @@ export async function getSessionIdentity(): Promise<{ id: string; email: string;
     const meta = user.user_metadata as { name?: string; full_name?: string } | undefined;
     return { id: user.id, email: user.email.toLowerCase(), name: meta?.name || meta?.full_name || "" };
   } catch (error) {
-    console.error("getSessionIdentity:", error instanceof Error ? error.message : error);
+    console.error("readIdentity:", error instanceof Error ? error.message : error);
     return null;
   }
+}
+
+/** ผ่าน Google แล้วแต่ยังไม่ได้กรอก OTP — ใช้เฉพาะหน้าและ API ของขั้นกรอกรหัส */
+export async function getPendingIdentity(): Promise<SessionIdentity | null> {
+  const user = await readIdentity();
+  return user && !isOtpVerified(user.id) ? user : null;
+}
+
+/** ผู้ที่ล็อกอินครบสองขั้นแล้ว — คืนเฉพาะ id + อีเมล (เร็วกว่า getSessionUser หนึ่ง query) */
+export async function getSessionIdentity(): Promise<SessionIdentity | null> {
+  if (!hasOtpCookie()) return null; // ยังไม่ผ่าน OTP ไม่ต้องเสียเวลายิงไปถาม Supabase Auth
+  const user = await readIdentity();
+  return user && isOtpVerified(user.id) ? user : null;
 }
 
 /** ผู้ใช้ของ request นี้พร้อมสิทธิ์ — null เมื่อไม่ได้ล็อกอิน */

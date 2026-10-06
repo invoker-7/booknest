@@ -43,7 +43,7 @@ const TABS: TabItem[] = [
 ];
 
 // หน้าที่มีแถบปุ่มหลักติดล่างจอของตัวเอง ไม่ต้องแสดงแท็บบาร์มือถือ
-const NO_TABBAR = ["/product/", "/cart", "/checkout", "/pay/", "/receipt", "/login", "/signup"];
+const NO_TABBAR = ["/product/", "/cart", "/checkout", "/pay/", "/receipt", "/login"];
 
 const isActive = (pathname: string, href: string) =>
   href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");

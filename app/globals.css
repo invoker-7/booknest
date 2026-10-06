@@ -979,6 +979,9 @@ html[lang="th"] .article h1 { line-height: 1.25; }
 .auth-or { display: flex; align-items: center; gap: 12px; margin: 20px 0; font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
 .auth-or::before, .auth-or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .auth-foot { font-size: 14px; margin-top: 12px; }
+.auth-step { font-size: 14px; margin-top: 16px; }
+.field input.otp-input { font-size: 24px; letter-spacing: .4em; text-align: center; font-variant-numeric: tabular-nums; }
+.linkbtn:disabled { opacity: .5; cursor: default; }
 .field input[readonly] { background: var(--sunk); color: var(--ink-2); }
 .field textarea {
   padding: 12px 14px; background: var(--surface); border: 1px solid var(--field); border-radius: 0;

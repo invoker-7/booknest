@@ -18,7 +18,7 @@ VECTOR เป็นร้านขายสินค้าดิจิทัล�
 - **จำลองการชำระเงิน:** เปลี่ยนสถานะ `PENDING → PAID → COMPLETED`
 - **ส่งไฟล์:** สร้าง signed URL จาก bucket แบบ private (มีอายุ 24 ชม.) แล้วส่งทางอีเมลผ่าน Gmail SMTP
 - **คลังของฉัน:** สินค้าที่ซื้อแล้ว ดาวน์โหลดซ้ำ ชำระคำสั่งซื้อที่ค้าง และค้นหาคำสั่งซื้อเดิมด้วยเลขคำสั่งซื้อคู่กับอีเมล
-- **สมาชิก:** สมัคร / เข้าสู่ระบบด้วยอีเมล + รหัสผ่าน หรือ Google (Supabase Auth) คำสั่งซื้อที่ทำตอนล็อกอินผูกกับบัญชี ดูประวัติและดาวน์โหลดได้จากทุกอุปกรณ์ที่ `/account`
+- **สมาชิก:** เข้าสู่ระบบด้วย Google เท่านั้น (Supabase Auth) แล้วยืนยันอีเมลอีกชั้นด้วยรหัส OTP 6 หลักทุกครั้งที่เข้าสู่ระบบ (อายุ 10 นาที, ผิดได้ 5 ครั้ง, ขอใหม่ได้ทุก 60 วินาที) ไม่มีรหัสผ่านให้จำ บัญชีถูกสร้างตอนเข้าสู่ระบบครั้งแรก คำสั่งซื้อที่ทำตอนล็อกอินผูกกับบัญชี ดูประวัติและดาวน์โหลดได้จากทุกอุปกรณ์ที่ `/account`
 - **หลังบ้าน (`/admin`, เฉพาะผู้ดูแล):**
   - Dashboard: ยอดขาย คำสั่งซื้อ ลูกค้า สินค้า กราฟยอดขาย 30 วัน สินค้าขายดี อัปเดตเองทุก 15 วินาที
   - จัดการสินค้า: เพิ่ม แก้ไข ลบ/ซ่อน หมวดหมู่ และอัปโหลดไฟล์ตรงเข้า Storage แบบ private
@@ -53,7 +53,7 @@ VECTOR เป็นร้านขายสินค้าดิจิทัล�
 app/                    หน้าเว็บ (App Router) + API routes
   api/orders/           สร้าง / ค้นหา / จ่ายเงินคำสั่งซื้อ
   api/download/         ออกลิงก์ดาวน์โหลด
-  api/auth/             สมัคร / เข้าสู่ระบบ / ออกจากระบบ / Google OAuth
+  api/auth/             Google OAuth / ตรวจและส่งรหัส OTP / ออกจากระบบ
   api/account/          ประวัติคำสั่งซื้อของบัญชี
   api/admin/            สถิติ, สินค้า, อัปโหลด, import, export (ตรวจสิทธิ์ admin ทุก route)
   admin/                หน้าหลังบ้าน
@@ -68,8 +68,9 @@ lib/catalogServer.ts    โหลดแคตตาล็อกสำหรั�
 lib/apiClient.ts        ตัวเรียก API จากเบราว์เซอร์
 lib/purchase.ts         ขั้นตอนการสั่งซื้อทั้งตะกร้า
 lib/localOrders.ts      คำสั่งซื้อและใบเสร็จที่จำไว้ในเบราว์เซอร์
-lib/email.ts            ส่งอีเมลลิงก์ดาวน์โหลด
+lib/email.ts            ส่งอีเมลลิงก์ดาวน์โหลด และอีเมลรหัส OTP
 lib/auth.ts             session จาก cookie, ตรวจสิทธิ์ admin (server เท่านั้น)
+lib/otp.ts              รหัส OTP ทางอีเมล: ออกรหัส ตรวจรหัส และ cookie ที่บอกว่าผ่านแล้ว
 lib/admin.ts            ข้อมูลหลังบ้าน + ตรวจข้อมูลสินค้า (ใช้ทั้งฟอร์มและ import)
 lib/csv.ts, sheets.ts   อ่าน/เขียน CSV และ Excel
 lib/i18n.ts             ข้อความทั้งหมดของเว็บ ภาษา th / en (key มี type ตรวจตอน build)
@@ -87,18 +88,19 @@ supabase/*.sql          ตาราง, function และ RLS
    - ไปที่ SQL Editor แล้วรันตามลำดับ: [supabase/schema.sql](supabase/schema.sql) → [supabase/marketplace.sql](supabase/marketplace.sql) → [supabase/admin.sql](supabase/admin.sql)
    - `admin.sql` สร้าง bucket `ebooks` แบบ **private** ให้แล้ว ไฟล์สินค้าอัปโหลดผ่านหน้า `/admin/products`
    - Authentication → URL Configuration: ใส่ Site URL ของเว็บ และเพิ่ม `https://<โดเมน>/auth/callback` (กับ `http://localhost:3000/auth/callback`) ใน Redirect URLs
-   - (ถ้าใช้ Google) Authentication → Providers → Google: ใส่ Client ID / Secret จาก Google Cloud Console แล้วตั้ง `AUTH_GOOGLE_ENABLED=true`
+   - Authentication → Providers → Google: ใส่ Client ID / Secret จาก Google Cloud Console แล้วตั้ง `AUTH_GOOGLE_ENABLED=true` (จำเป็น — เป็นทางเข้าสู่ระบบทางเดียว)
+   - Authentication → Providers → Email: ปิดได้เลย เว็บไม่ใช้อีเมล + รหัสผ่านแล้ว
 2. **ตั้งค่า env:** คัดลอก `.env.example` เป็น `.env.local` แล้วใส่ค่าจริง
 
    | ตัวแปร | มาจากไหน |
    | --- | --- |
    | `SUPABASE_URL` | Project Settings → API |
    | `SUPABASE_SECRET_KEY` | Project Settings → API (secret / service_role) **ใช้ฝั่ง server เท่านั้น** |
-   | `SUPABASE_ANON_KEY` | Project Settings → API (anon / publishable) ใช้ที่ server สำหรับ session ของสมาชิก |
+   | `SUPABASE_PUBLISHABLE_KEY` | Project Settings → API Keys → Publishable key (ชื่อเดิม anon key) ใช้ที่ server สำหรับ session ของสมาชิก |
    | `ADMIN_EMAILS` | อีเมลผู้ดูแล คั่นด้วย `,` (หรือรัน `update profiles set role = 'admin'` ท้ายไฟล์ `admin.sql`) |
-   | `AUTH_GOOGLE_ENABLED` | `true` เมื่อเปิด Google provider ใน Supabase แล้ว (ปุ่ม Google จะแสดง) |
+   | `AUTH_GOOGLE_ENABLED` | `true` เมื่อเปิด Google provider ใน Supabase แล้ว — ถ้าไม่ตั้ง จะเข้าสู่ระบบไม่ได้ |
    | `SUPABASE_EBOOK_BUCKET` | ชื่อ bucket (ค่าเริ่มต้น `ebooks`) |
-   | `SMTP_USER` / `SMTP_PASS` | Gmail + App Password (ต้องเปิด 2-Step Verification ก่อน) ใส่เครื่องหมายคำพูดครอบถ้ารหัสมีช่องว่าง |
+   | `SMTP_USER` / `SMTP_PASS` | Gmail + App Password (ต้องเปิด 2-Step Verification ก่อน) ใส่เครื่องหมายคำพูดครอบถ้ารหัสมีช่องว่าง ใช้ส่งทั้งลิงก์ดาวน์โหลดและรหัส OTP — ถ้าเว้นว่างตอน `pnpm dev` รหัส OTP จะแสดงใน log ของ server แทน ส่วน production จะเข้าสู่ระบบไม่ได้ |
    | `EMAIL_FROM` | เช่น `"VECTOR <your.gmail@gmail.com>"` |
 
 3. **รัน** (ต้องมี Node 20+ และ pnpm — เปิดใช้ด้วย `corepack enable`)
@@ -116,7 +118,7 @@ supabase/*.sql          ตาราง, function และ RLS
    | `pnpm typecheck` | ตรวจ type อย่างเดียว |
    | `pnpm lint` | ตรวจ ESLint |
 
-4. **ตั้งผู้ดูแล:** สมัครสมาชิกที่ `/signup` ด้วยอีเมลที่ใส่ใน `ADMIN_EMAILS` แล้วเข้า `/admin`
+4. **ตั้งผู้ดูแล:** เข้าสู่ระบบที่ `/login` ด้วยบัญชี Google ที่อีเมลตรงกับ `ADMIN_EMAILS` แล้วเข้า `/admin`
 
 5. **(ทางเลือก) Supabase แบบ local:** ต้องมี Docker
 
@@ -208,7 +210,7 @@ token ทั้งหมดอยู่ใน `:root` ของ [app/globals.css
 
 - การชำระเงินเป็นการจำลองทั้งหมด (ยังไม่ได้ต่อ Stripe)
 - Google login ต้องตั้งค่า OAuth client ใน Supabase ก่อน — โค้ดพร้อมแล้วแต่ยังไม่ได้ทดสอบกับ Google จริง
-- ยังไม่มีหน้าลืมรหัสผ่าน / แก้โปรไฟล์ ระบบคืนเงิน หรือคูปอง
+- ยังไม่มีหน้าแก้โปรไฟล์ ระบบคืนเงิน หรือคูปอง
 - คำสั่งซื้อแบบ guest ไม่ถูกผูกเข้าบัญชีอัตโนมัติจากอีเมล (ต้องค้นด้วยเลขคำสั่งซื้อ + อีเมลในคลังของฉัน)
 - Import รองรับเฉพาะสินค้า (ผู้ใช้และยอดขายส่งออกได้อย่างเดียว) และจัดการร้านค้า (shops) ยังต้องทำผ่าน SQL
 - Dashboard อัปเดตด้วยการถามซ้ำทุก 15 วินาที ไม่ใช่ Supabase Realtime

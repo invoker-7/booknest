@@ -46,6 +46,18 @@ select id, coalesce(email, ''), coalesce(raw_user_meta_data ->> 'name', raw_user
 from auth.users
 on conflict (id) do nothing;
 
+-- ---------- 1.1 รหัส OTP ทางอีเมล (ขั้นที่สองหลังเข้าสู่ระบบด้วย Google) ----------
+-- หนึ่งแถวต่อหนึ่งบัญชี เก็บเฉพาะ hash ของรหัส — server อ่าน/เขียนด้วย secret key เท่านั้น
+create table if not exists public.login_otps (
+  user_id     uuid primary key references auth.users(id) on delete cascade,
+  code_hash   text not null,
+  expires_at  timestamptz not null,
+  sent_at     timestamptz not null default now(),
+  attempts    integer not null default 0
+);
+
+alter table public.login_otps enable row level security;
+
 -- ---------- 2. ผูกคำสั่งซื้อกับบัญชี (ซื้อแบบไม่ล็อกอินได้เหมือนเดิม = null) ----------
 alter table public.orders add column if not exists user_id uuid references auth.users(id) on delete set null;
 create index if not exists orders_user_idx on public.orders (user_id);

@@ -79,13 +79,19 @@ export async function fetchMe(): Promise<SessionUser | null> {
   }
 }
 
-/** เข้าสู่ระบบ — โยน Error(code) เมื่อไม่สำเร็จ */
-export const login = (email: string, password: string) =>
-  postJson<{ ok: true }>("/api/auth/login", { email, password });
+/** ขั้นที่สองหลัง Google: ส่งรหัสจากอีเมล — โยน Error(code) เมื่อไม่ผ่าน */
+export const verifyOtp = (code: string) => postJson<{ ok: true }>("/api/auth/otp", { code });
 
-/** สมัครสมาชิก — confirm = true เมื่อต้องกดยืนยันในอีเมลก่อน */
-export const signup = (name: string, email: string, password: string) =>
-  postJson<{ ok: true; confirm: boolean }>("/api/auth/signup", { name, email, password });
+/** ขอรหัสใหม่ — retryIn = อีกกี่วินาทีจึงขอได้อีก */
+export async function resendOtp(): Promise<{ ok: boolean; error?: string; retryIn?: number }> {
+  try {
+    const res = await fetch("/api/auth/otp/resend", { method: "POST" });
+    const data = (await res.json().catch(() => ({}))) as { error?: string; retryIn?: number };
+    return { ok: res.ok, error: data.error, retryIn: data.retryIn };
+  } catch {
+    return { ok: false };
+  }
+}
 
 export const logout = () => postJson<{ ok: true }>("/api/auth/logout");
 
