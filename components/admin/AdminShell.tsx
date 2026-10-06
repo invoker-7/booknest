@@ -7,7 +7,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { useLang } from "@/components/LangProvider";
 import { LangToggle } from "@/components/Shell";
 import { useToast } from "@/components/StoreProvider";
-import { ArrowLeft, Box, Chart, Check, Mark, Receipt, Swap, User, Users, type IconProps } from "@/components/Icons";
+import { Archive, ArrowLeft, Box, Chart, Check, List, Mark, Receipt, Swap, User, Users, type IconProps } from "@/components/Icons";
 import type { TKey } from "@/lib/i18n";
 
 const NAV: { href: string; key: TKey; Icon: (p: IconProps) => JSX.Element }[] = [
@@ -16,7 +16,9 @@ const NAV: { href: string; key: TKey; Icon: (p: IconProps) => JSX.Element }[] = 
   { href: "/admin/orders", key: "admOrders", Icon: Receipt },
   { href: "/admin/customers", key: "admCustomers", Icon: Users },
   { href: "/admin/users", key: "admUsers", Icon: User },
+  { href: "/admin/reports", key: "admReports", Icon: Archive },
   { href: "/admin/data", key: "admData", Icon: Swap },
+  { href: "/admin/raw", key: "admRaw", Icon: List },
 ];
 
 const isActive = (pathname: string, href: string) =>

@@ -328,6 +328,34 @@ export interface DailyPoint {
   orders: number;
 }
 
+export type ActivityKind = "order_created" | "order_paid" | "order_delivered" | "email_failed" | "member_joined";
+
+/** หนึ่งเหตุการณ์ในบันทึกกิจกรรม (ประกอบจากเวลาที่บันทึกไว้ในคำสั่งซื้อและบัญชีสมาชิก) */
+export interface ActivityEvent {
+  at: string;
+  kind: ActivityKind;
+  /** เลขคำสั่งซื้อ — null สำหรับเหตุการณ์ของสมาชิก */
+  ref: string | null;
+  /** อีเมลของลูกค้าหรือสมาชิก */
+  who: string;
+  amount: number | null;
+}
+
+/** รายงานของช่วง N วันล่าสุด — ตัวเลขเป็นของช่วงนั้น เทียบกับ N วันก่อนหน้า */
+export interface AdminReport {
+  days: number;
+  sales: number;
+  orders: number;
+  customers: number;
+  salesChange: number | null;
+  ordersChange: number | null;
+  customersChange: number | null;
+  daily: DailyPoint[];
+  /** สินค้าขายดีตลอดเวลา (ไม่จำกัดช่วง) */
+  top: AdminStats["top"];
+  activity: ActivityEvent[];
+}
+
 export interface AdminStats {
   generatedAt: string;
   sales: number;
