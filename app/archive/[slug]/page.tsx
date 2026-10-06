@@ -5,6 +5,11 @@ import { ArticleView } from "@/components/views/ArchiveView";
 
 export const revalidate = 60;
 
+// ไม่ pre-render ตอน build แต่เปิดให้ cache เป็น static หลังคำขอแรก (ISR) — ไม่ต้องรัน function ทุกครั้งที่มีคนเปิด
+export function generateStaticParams() {
+  return [];
+}
+
 export function generateMetadata({ params }: { params: { slug: string } }) {
   const a = ARCHIVE.find((x) => x.slug === params.slug);
   return a ? { title: a.title_en, description: a.dek_en } : {};

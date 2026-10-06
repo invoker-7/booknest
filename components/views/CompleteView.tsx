@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useLang } from "@/components/LangProvider";
+import { useStore } from "@/components/StoreProvider";
 import Plate from "@/components/Plate";
 import { Check, Download, Library, Print } from "@/components/Icons";
 import { Button, LinkButton, Steps, Notice, Empty } from "@/components/ui";
 import { categoryOf } from "@/lib/catalog";
 import { openDownload } from "@/lib/download";
 import { pick } from "@/lib/format";
-import { findReceipt } from "@/lib/localOrders";
+import { lookupOrder } from "@/lib/apiClient";
+import { findReceipt, findReceiptByOrder, rememberOrder, saveReceipt } from "@/lib/localOrders";
 import type { BookRow, Receipt, SafeOrder } from "@/lib/types";
 
 interface CompleteBodyProps {
@@ -119,10 +121,39 @@ export default function CompleteView({ id }: { id: string }) {
   const { t } = useLang();
   // undefined = ยังไม่ได้อ่าน localStorage, null = ไม่พบ
   const [receipt, setReceipt] = useState<Receipt | null | undefined>(undefined);
+  const [unpaid, setUnpaid] = useState(false);
+  const { removeManyFromCart } = useStore();
 
   useEffect(() => {
-    setReceipt(findReceipt(id));
-  }, [id]);
+    const found = findReceipt(id) ?? findReceiptByOrder(id);
+    if (!found?.awaiting) {
+      setReceipt(found);
+      return;
+    }
+
+    // ใบเสร็จที่เก็บไว้ก่อนไปหน้า QR พร้อมเพย์: ถาม server ว่าร้านยืนยันรับเงินครบทุกคำสั่งซื้อก่อนแสดงว่าเสร็จ
+    let alive = true;
+    void Promise.all(found.orders.map((line) => lookupOrder(line.orderNo, found.email))).then((rows) => {
+      if (!alive) return;
+      if (rows.some((row) => !row || row.status === "PENDING")) {
+        setUnpaid(true);
+        setReceipt(found);
+        return;
+      }
+      const done: Receipt = {
+        ...found,
+        awaiting: false,
+        orders: found.orders.map((line, i) => ({ ...line, emailStatus: rows[i]?.email_sent ? "sent" : "failed" })),
+      };
+      saveReceipt(done);
+      for (const row of rows) if (row) rememberOrder({ orderNo: row.order_no, status: row.status, receiptId: done.id });
+      removeManyFromCart(done.orders.flatMap((line) => (line.bookId ? [line.bookId] : [])));
+      setReceipt(done);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [id, removeManyFromCart]);
 
   if (receipt === undefined) return <div className="wrap page-pad" aria-busy="true" />;
   if (!receipt) {
@@ -132,6 +163,17 @@ export default function CompleteView({ id }: { id: string }) {
           title={t("receiptMissing")}
           body={t("otherDevice")}
           action={<LinkButton href={`/library?order=${encodeURIComponent(id)}`}>{t("findInLibrary")}</LinkButton>}
+        />
+      </div>
+    );
+  }
+  if (unpaid) {
+    return (
+      <div className="wrap page-pad">
+        <Empty
+          title={t("payAwaitTitle")}
+          body={t("payAwaitBody")}
+          action={<LinkButton href="/library">{t("navLibrary")}</LinkButton>}
         />
       </div>
     );

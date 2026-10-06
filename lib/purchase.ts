@@ -1,4 +1,4 @@
-import { createOrder, payOrder } from "@/lib/apiClient";
+import { createOrder, payOrder, startCheckout } from "@/lib/apiClient";
 import { listLocalOrders, rememberOrder, saveReceipt } from "@/lib/localOrders";
 import type { CartItem, Receipt, ReceiptLine } from "@/lib/types";
 
@@ -21,11 +21,40 @@ export class PurchaseError extends Error {
   }
 }
 
+const lineOf = (p: CartItem, orderNo: string, emailStatus: ReceiptLine["emailStatus"]): ReceiptLine => ({
+  orderNo,
+  bookId: p.id,
+  title_th: p.title_th,
+  title_en: p.title_en,
+  category: p.category,
+  version: p.version,
+  amount: p.price,
+  emailStatus,
+});
+
+/** รวมคำสั่งซื้อเป็นใบเสร็จเดียว แล้วจำไว้ในเบราว์เซอร์ */
+function buildReceipt(buyer: Buyer, lines: ReceiptLine[], awaiting: boolean): Receipt {
+  const first = lines[0];
+  if (!first) throw new Error("empty_cart");
+  const receipt: Receipt = {
+    id: first.orderNo,
+    createdAt: new Date().toISOString(),
+    ...buyer,
+    orders: lines,
+    total: lines.reduce((sum, l) => sum + (l.amount ?? 0), 0),
+    ...(awaiting ? { awaiting } : {}),
+  };
+  saveReceipt(receipt);
+  for (const l of lines) rememberOrder({ orderNo: l.orderNo, receiptId: receipt.id });
+  return receipt;
+}
+
 /**
  * ซื้อสินค้าทั้งตะกร้าด้วยการกดชำระครั้งเดียว
  *
  * backend รับคำสั่งซื้อทีละสินค้า จึงสร้างคำสั่งซื้อหนึ่งรายการต่อสินค้าหนึ่งชิ้น
- * แล้วรวมเป็นใบเสร็จเดียว ทุกขั้นถูกจำไว้ใน localStorage ทันที
+ * แล้วรวมเป็นใบเสร็จเดียว จ่ายยอดรวมครั้งเดียวด้วย QR พร้อมเพย์
+ * ทุกขั้นถูกจำไว้ใน localStorage ทันที
  * เรียกซ้ำได้อย่างปลอดภัย: คำสั่งซื้อที่ยังไม่ชำระของสินค้าเดิมจะถูกนำกลับมาใช้
  */
 export async function purchase(
@@ -66,39 +95,36 @@ export async function purchase(
       });
     }
 
-    // 2) ชำระเงิน (จำลอง)
+    // 2) ชำระเงิน
     onPhase("charge");
-    const lines: ReceiptLine[] = [];
-    for (const p of items) {
+    const ordered = items.map((p) => {
       const orderNo = orderNos.get(p.id);
       if (!orderNo) throw new Error("missing_order");
-      const paid = await payOrder(orderNo);
-      rememberOrder({ orderNo, status: paid.status || "PAID" });
-      lines.push({
-        orderNo,
-        bookId: p.id,
-        title_th: p.title_th,
-        title_en: p.title_en,
-        category: p.category,
-        version: p.version,
-        amount: p.price,
-        emailStatus: paid.emailStatus ?? null,
-      });
+      return { p, orderNo };
+    });
+
+    const checkout = await startCheckout(ordered.map((o) => o.orderNo));
+    if (checkout.mode !== "mock") {
+      // จ่ายด้วย QR พร้อมเพย์ (หรือสินค้าฟรีที่ server จัดส่งให้แล้ว):
+      // เก็บใบเสร็จไว้ก่อน หน้าใบเสร็จจะถาม server เองว่าร้านยืนยันรับเงินแล้วจริงไหม
+      const receipt = buildReceipt(
+        buyer,
+        ordered.map(({ p, orderNo }) => lineOf(p, orderNo, null)),
+        true
+      );
+      if (checkout.mode === "free") return receipt;
+      window.location.assign(`/pay-qr?orders=${encodeURIComponent(checkout.orderNos.join(","))}&receipt=1`);
+      return new Promise<Receipt>(() => {}); // กำลังออกจากหน้านี้ไปหน้า QR
     }
 
-    const first = lines[0];
-    if (!first) throw new Error("empty_cart");
-
-    const receipt: Receipt = {
-      id: first.orderNo,
-      createdAt: new Date().toISOString(),
-      ...buyer,
-      orders: lines,
-      total: lines.reduce((sum, l) => sum + (l.amount ?? 0), 0),
-    };
-    saveReceipt(receipt);
-    for (const l of lines) rememberOrder({ orderNo: l.orderNo, receiptId: receipt.id });
-    return receipt;
+    // ทดสอบในเครื่องโดยยังไม่ได้ตั้งพร้อมเพย์: ชำระแบบจำลอง ทีละคำสั่งซื้อ
+    const lines: ReceiptLine[] = [];
+    for (const { p, orderNo } of ordered) {
+      const paid = await payOrder(orderNo);
+      rememberOrder({ orderNo, status: paid.status || "PAID" });
+      lines.push(lineOf(p, orderNo, paid.emailStatus ?? null));
+    }
+    return buildReceipt(buyer, lines, false);
   } catch {
     throw new PurchaseError(touched);
   }

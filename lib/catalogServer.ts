@@ -1,11 +1,11 @@
 import "server-only";
-import { getBooks, getBook, getShop } from "@/lib/supabase";
-import { enrich, creatorsFrom, SAMPLE_PRODUCTS, SAMPLE_CREATORS } from "@/lib/catalog";
+import { getBooks, getBook, getShop, isSupabaseConfigured } from "@/lib/supabase";
+import { enrich, creatorsFrom } from "@/lib/catalog";
 import type { Creator, Product } from "@/lib/types";
 
 export interface Catalog {
   products: Product[];
-  /** true = สินค้าจริงจาก Supabase, false = ข้อมูลตัวอย่าง (สั่งซื้อไม่ได้) */
+  /** false = ยังไม่ได้ตั้งค่าฐานข้อมูล (หน้าร้านแสดงแถบแจ้งและปิดการสั่งซื้อ) */
   live: boolean;
 }
 
@@ -16,10 +16,8 @@ const EMPTY_TTL_MS = 60_000;
 const state = ((globalThis as { __vectorCatalog?: { emptyUntil: number; inflight: Promise<Catalog> | null } })
   .__vectorCatalog ??= { emptyUntil: 0, inflight: null });
 
-const sampleCatalog = (): Catalog => ({
-  products: SAMPLE_PRODUCTS.map((p, i) => ({ ...enrich(p, i), sample: true })),
-  live: false,
-});
+// ร้านที่ยังไม่มีสินค้าแสดงหน้าว่าง ไม่มีสินค้าตัวอย่าง — เจ้าของร้านเพิ่มเองจากหลังบ้าน
+const emptyCatalog = (): Catalog => ({ products: [], live: isSupabaseConfigured });
 
 /** หลังบ้านแก้สินค้าแล้ว: ลืมผล "ฐานข้อมูลว่าง" ที่จำไว้ */
 export function resetCatalogCache(): void {
@@ -28,18 +26,17 @@ export function resetCatalogCache(): void {
 
 /**
  * โหลดแคตตาล็อกสำหรับหน้าร้าน
- * live = true  -> สินค้าจริงจาก Supabase
- * live = false -> ฐานข้อมูลว่างหรือเชื่อมต่อไม่ได้ ใช้ข้อมูลตัวอย่าง (สั่งซื้อไม่ได้)
+ * สินค้ามาจาก Supabase เท่านั้น — ฐานข้อมูลว่างหรือเชื่อมต่อไม่ได้ = รายการว่าง
  */
 export function loadCatalog(): Promise<Catalog> {
-  if (Date.now() < state.emptyUntil) return Promise.resolve(sampleCatalog());
+  if (Date.now() < state.emptyUntil) return Promise.resolve(emptyCatalog());
   // หลายส่วนของหน้าเดียวกันเรียกพร้อมกัน ให้ใช้คำขอเดียว
   if (!state.inflight) {
     state.inflight = getBooks()
       .then((rows) => {
         if (rows.length > 0) return { products: rows.map((row, i) => enrich(row, i)), live: true };
         state.emptyUntil = Date.now() + EMPTY_TTL_MS;
-        return sampleCatalog();
+        return emptyCatalog();
       })
       .finally(() => { state.inflight = null; });
   }
@@ -59,7 +56,7 @@ export async function loadProduct(id: string): Promise<Catalog & { product: Prod
 
 export async function loadCreators(): Promise<Catalog & { creators: Creator[] }> {
   const { products, live } = await loadCatalog();
-  const creators = creatorsFrom(products, live ? [] : SAMPLE_CREATORS);
+  const creators = creatorsFrom(products);
   return { creators, products, live };
 }
 

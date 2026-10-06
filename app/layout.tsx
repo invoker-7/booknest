@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     template: "%s · VECTOR",
   },
   description:
-    "Templates, systems and tools engineered for real work. Notion systems, UI kits, developer tools and technical guides. (Demo build — no real payments.)",
+    "Templates, systems and tools engineered for real work. Notion systems, UI kits, developer tools and technical guides.",
   applicationName: "VECTOR",
   appleWebApp: { capable: true, title: "VECTOR", statusBarStyle: "default" },
 };

@@ -4,12 +4,11 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { useLang } from "@/components/LangProvider";
 import { useStore } from "@/components/StoreProvider";
-import Plate from "@/components/Plate";
 import ProductArt from "@/components/ProductArt";
 import { Bookmark, Cart, Check, Lock, Star, Library } from "@/components/Icons";
 import { Button, LinkButton, Meta, Price, Rating, ProductTile, PreviewBanner, Notice } from "@/components/ui";
-import { INCLUDED, FAQ, SAMPLE_REVIEWS, discountOf, stamp } from "@/lib/catalog";
-import { fmtDate, pick } from "@/lib/format";
+import { FAQ, discountOf, stamp } from "@/lib/catalog";
+import { pick } from "@/lib/format";
 import type { TKey } from "@/lib/i18n";
 import type { Product } from "@/lib/types";
 
@@ -133,7 +132,6 @@ export default function ProductView({ product: p, related, live }: ProductViewPr
 
             <div className="pd-rating">
               <Rating value={p.rating} count={p.reviews} />
-              {p.sample && <span className="tag">{t("sampleProduct")}</span>}
             </div>
 
             <div className="pd-pricebox">
@@ -172,28 +170,7 @@ export default function ProductView({ product: p, related, live }: ProductViewPr
           <p>{pick(p, "long", lang)}</p>
         </Doc>
 
-        <Doc no="02" label="Contents" title={t("included")}>
-          <ul className="inc">
-            {(INCLUDED[p.category] || INCLUDED.guide).map((k, i) => (
-              <li key={k}>
-                <span className="mono">{String(i + 1).padStart(2, "0")}</span>
-                <span>{t(k)}</span>
-                <Check size={18} />
-              </li>
-            ))}
-          </ul>
-        </Doc>
-
-        <Doc no="03" label="Preview" title={t("preview")}>
-          <div className="preview-grid">
-            <figure><Plate category={p.category} no={p.productNo} label="Sheet 01" title={`${title} — 1`} tone="light" /></figure>
-            <figure><Plate category={p.category} label="Sheet 02" title={`${title} — 2`} tone="dark" /></figure>
-            <figure><Plate category={p.platform === "notion" ? "productivity" : "template"} label="Sheet 03" title={`${title} — 3`} tone="light" /></figure>
-          </div>
-          <p className="preview-note">{t("previewNote")}</p>
-        </Doc>
-
-        <Doc no="04" label="Reviews" title={t("reviewsTitle")}>
+        <Doc no="02" label="Reviews" title={t("reviewsTitle")}>
           {p.reviews > 0 ? (
             <>
               <div className="rev-summary">
@@ -205,33 +182,14 @@ export default function ProductView({ product: p, related, live }: ProductViewPr
                   </p>
                 </div>
               </div>
-              {p.sample ? (
-                <ul className="rev-list">
-                  {SAMPLE_REVIEWS.map((r) => (
-                    <li key={r.name}>
-                      <div className="rev-who">
-                        <strong>{r.name}</strong>
-                        <span>{pick(r, "role", lang)}</span>
-                        <span className="mono">{fmtDate(r.date, lang)}</span>
-                      </div>
-                      <div className="rev-body">
-                        <Stars value={r.rating} />
-                        <span className="sr-only">{r.rating} / 5</span>
-                        <p>{r[lang]}</p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="muted" style={{ marginTop: 20, fontSize: 15 }}>{t("reviewsLiveNote")}</p>
-              )}
+              <p className="muted" style={{ marginTop: 20, fontSize: 15 }}>{t("reviewsLiveNote")}</p>
             </>
           ) : (
             <p className="muted">{t("noReviewsYet")}</p>
           )}
         </Doc>
 
-        <Doc no="05" label="FAQ" title={t("faq")}>
+        <Doc no="03" label="FAQ" title={t("faq")}>
           <div className="faq">
             {FAQ.map((k) => (
               <details key={k}>

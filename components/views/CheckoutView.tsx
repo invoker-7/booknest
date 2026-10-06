@@ -7,19 +7,19 @@ import { useStore } from "@/components/StoreProvider";
 import { useAuth } from "@/components/AuthProvider";
 import Plate from "@/components/Plate";
 import { Alert, Arrow, Cart, Check, Info, Lock, Spinner } from "@/components/Icons";
-import { Button, LinkButton, Empty, Steps, Notice } from "@/components/ui";
+import { Button, LinkButton, Empty, Steps, Notice, PayNote } from "@/components/ui";
 import { SummaryLines, totalsOf } from "@/components/views/CartView";
 import { isEmail, money, pick } from "@/lib/format";
 import { purchase, PurchaseError, type PurchasePhase } from "@/lib/purchase";
-import type { CartItem } from "@/lib/types";
+import type { CartItem, PayOptions } from "@/lib/types";
 
 type Phase = "idle" | PurchasePhase | "error";
 
 /**
- * Checkout หน้าเดียว: ข้อมูลผู้ซื้อ → ชำระเงิน (จำลอง)
+ * Checkout หน้าเดียว: ข้อมูลผู้ซื้อ → ชำระเงินด้วย QR พร้อมเพย์
  * ขั้นตอนการสั่งซื้อจริงอยู่ใน lib/purchase.ts — ผู้ซื้อกดชำระครั้งเดียว
  */
-export default function CheckoutView({ live }: { live: boolean }) {
+export default function CheckoutView({ live, pay: payOptions }: { live: boolean; pay: PayOptions }) {
   const { t, lang } = useLang();
   const router = useRouter();
   const { ready, cart, orders, removeManyFromCart } = useStore();
@@ -34,6 +34,12 @@ export default function CheckoutView({ live }: { live: boolean }) {
   const leaving = useRef(false);
   const paying = useRef<CartItem[] | null>(null); // รายการที่กำลังชำระ — ตะกร้าจะถูกตัดรายการที่จ่ายแล้วออกระหว่างทาง
   const nameRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    // กด Back จากหน้า QR: เบราว์เซอร์คืนหน้านี้จาก cache ทั้งที่ปุ่มยังค้างสถานะกำลังดำเนินการ
+    const restored = (e: PageTransitionEvent) => e.persisted && window.location.reload();
+    window.addEventListener("pageshow", restored);
+    return () => window.removeEventListener("pageshow", restored);
+  }, []);
 
   // เติมชื่อและอีเมลจากคำสั่งซื้อล่าสุดบนอุปกรณ์นี้
   useEffect(() => {
@@ -67,7 +73,7 @@ export default function CheckoutView({ live }: { live: boolean }) {
     );
   }
 
-  const blocked = !live || cart.some((p) => p.sample);
+  const blocked = !live || !payOptions.method;
   const nameBad = touched && !name.trim();
   const emailBad = touched && !isEmail(email);
   const busy = phase === "create" || phase === "charge";
@@ -202,10 +208,7 @@ export default function CheckoutView({ live }: { live: boolean }) {
 
             {step === 2 && (
               <>
-                <div className="paydemo">
-                  <span className="tag amber">{t("demoTag")}</span>
-                  <p>{t("demoBody")}</p>
-                </div>
+                <PayNote pay={payOptions} />
 
                 {phase === "error" && (
                   <div style={{ marginTop: 16 }}>

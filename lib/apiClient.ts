@@ -42,6 +42,34 @@ const postJson = sendJson;
 export const createOrder = (input: CreateOrderInput) =>
   postJson<CreateOrderResult>("/api/orders", input);
 
+export type CheckoutStart =
+  | { mode: "promptpay"; orderNos: string[] } // แสดง QR พร้อมเพย์ที่ /pay-qr
+  | { mode: "free" } // สินค้าแจกฟรี จัดส่งแล้ว
+  | { mode: "mock" }; // ทดสอบในเครื่องโดยยังไม่ได้ตั้งพร้อมเพย์ ใช้แบบจำลอง
+
+/** เริ่มชำระเงินของคำสั่งซื้อที่ค้างอยู่ (ทั้งตะกร้าจ่ายครั้งเดียว) */
+export const startCheckout = (orderNos: string[]) => postJson<CheckoutStart>("/api/checkout", { orderNos });
+
+export interface PromptPayState {
+  orders: { orderNo: string; status: OrderStatus }[];
+  /** ยอดที่ยังต้องจ่าย (บาท) */
+  amount: number;
+  /** เบอร์พร้อมเพย์ของร้านแบบปิดบางส่วน */
+  account: string;
+  /** QR เป็น SVG — มีเมื่อขอด้วย withQr */
+  qr?: string;
+}
+
+/** QR พร้อมเพย์และสถานะของคำสั่งซื้อชุดนี้ — คืน null เมื่อเปิดไม่ได้ */
+export async function fetchPromptPay(orders: string, withQr: boolean): Promise<PromptPayState | null> {
+  try {
+    const res = await fetch(`/api/checkout/promptpay?orders=${encodeURIComponent(orders)}${withQr ? "&qr=1" : ""}`, { cache: "no-store" });
+    return res.ok ? ((await res.json()) as PromptPayState) : null;
+  } catch {
+    return null;
+  }
+}
+
 /** ชำระเงิน (จำลอง) */
 export const payOrder = (orderNo: string) =>
   postJson<PayOrderResult>(`/api/orders/${encodeURIComponent(orderNo)}/pay`);

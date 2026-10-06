@@ -4,21 +4,9 @@ import CatalogView from "@/components/views/CatalogView";
 export const revalidate = 60;
 export const metadata = { title: "Products" };
 
-interface ProductsPageProps {
-  searchParams?: { q?: string | string[]; cat?: string | string[] };
-}
-
-const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
-
-// อ่านตัวกรองจาก URL ที่ฝั่ง server เพื่อให้ HTML แรกมีรายการสินค้าครบ ไม่ต้องรอ JavaScript
-export default async function ProductsPage({ searchParams }: ProductsPageProps) {
+// หน้านี้เป็น static (ISR): ไม่อ่าน searchParams ที่ server เพราะจะทำให้ทุกคำขอต้องรัน function
+// ตัวกรองจาก URL (?q=...&cat=...) ถูกอ่านที่เบราว์เซอร์ใน CatalogView
+export default async function ProductsPage() {
   const { products, live } = await loadCatalog();
-  return (
-    <CatalogView
-      products={products}
-      live={live}
-      initialQuery={first(searchParams?.q)}
-      initialCategory={first(searchParams?.cat)}
-    />
-  );
+  return <CatalogView products={products} live={live} />;
 }

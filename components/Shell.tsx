@@ -223,7 +223,6 @@ function Footer() {
         </div>
         <div className="footer-bottom mono">
           <span>© 2026 VECTOR</span>
-          <span>{t("footerNote")}</span>
         </div>
       </div>
     </footer>
@@ -253,7 +252,7 @@ export default function Shell({ children }: { children: ReactNode }) {
 
       <div className="utility mono">
         <div className="wrap utility-row">
-          <span><span className="utility-dot" aria-hidden="true" /> {t("demoBar")}</span>
+          <span><span className="utility-dot" aria-hidden="true" /> {t("utilityNote")}</span>
           <LangToggle className="on-dark hide-sm" />
         </div>
       </div>

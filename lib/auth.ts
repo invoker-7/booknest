@@ -138,6 +138,17 @@ export async function requireAdmin(next = "/admin"): Promise<SessionUser> {
   return user;
 }
 
+/**
+ * ตรวจสิทธิ์ admin ไปพร้อมกับโหลดข้อมูลของหน้า (ไม่ต้องรอตรวจสิทธิ์เสร็จก่อนค่อยเริ่ม query)
+ * ข้อมูลถูกคืนก็ต่อเมื่อผ่านการตรวจสิทธิ์แล้วเท่านั้น — ไม่ใช่ admin จะถูกพาออกไปก่อนถึงบรรทัด return
+ */
+export async function withAdmin<T>(next: string, load: () => Promise<T>): Promise<{ admin: SessionUser; data: T }> {
+  const pending = load();
+  pending.catch(() => {}); // ถ้าถูกพาออกไปก่อน ความผิดพลาดของ query ที่ไม่มีใครรอไม่ต้องขึ้นเป็น unhandled rejection
+  const admin = await requireAdmin(next);
+  return { admin, data: await pending };
+}
+
 /** ปลายทางหลังล็อกอิน — รับเฉพาะ path ภายในเว็บ กัน open redirect */
 export function safeNext(value: unknown, fallback = "/account"): string {
   const next = typeof value === "string" ? value : "";

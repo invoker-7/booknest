@@ -50,7 +50,6 @@ export default function ReceiptView({ id }: { id: string }) {
         <dl className="receipt-meta">
           <div><dt>{t("receiptNo")}</dt><dd className="mono">{r.id.replace(/^ORD/, "RCT")}</dd></div>
           <div><dt>{t("issued")}</dt><dd>{fmtDate(r.createdAt, lang)} · {fmtTime(r.createdAt)}</dd></div>
-          <div><dt>{t("paymentMethod")}</dt><dd>{t("paymentDemo")}</dd></div>
           <div><dt>{t("billedTo")}</dt><dd>{r.name}<br />{r.email}</dd></div>
         </dl>
 
@@ -79,7 +78,7 @@ export default function ReceiptView({ id }: { id: string }) {
           </tfoot>
         </table>
 
-        <p className="receipt-foot">{t("demoReceipt")}</p>
+        <p className="receipt-foot">{t("receiptNote")}</p>
       </article>
 
       <div className="receipt-actions">

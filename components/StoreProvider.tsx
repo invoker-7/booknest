@@ -65,7 +65,6 @@ export function snapshot(p: Cartable): CartItem {
     format: p.format,
     productNo: p.productNo,
     creatorName: p.creatorName,
-    sample: Boolean(p.sample),
   };
 }
 
