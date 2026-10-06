@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState, useCallback, type ReactNode } from "react";
-import { DICT, type Translate } from "@/lib/i18n";
+import { TH, type TKey, type Translate } from "@/lib/i18n";
 import type { Lang } from "@/lib/types";
 
 interface LangContext {
@@ -34,7 +34,18 @@ export function LangProvider({ children }: { children: ReactNode }) {
     try { localStorage.setItem(STORAGE_KEY, l); } catch {}
   }, []);
 
-  const t = useCallback<Translate>((key) => DICT[lang][key] ?? DICT.en[key] ?? key, [lang]);
+  // ภาษาอังกฤษถูกโหลดเมื่อจำเป็นเท่านั้น ระหว่างรอ (เสี้ยววินาที) ใช้ข้อความภาษาไทยไปก่อน
+  const [en, setEn] = useState<Record<TKey, string> | null>(null);
+  useEffect(() => {
+    if (lang !== "en" || en) return;
+    let alive = true;
+    void import("@/lib/i18n-en").then((m) => alive && setEn(m.EN));
+    return () => {
+      alive = false;
+    };
+  }, [lang, en]);
+
+  const t = useCallback<Translate>((key) => (lang === "en" ? en?.[key] : undefined) ?? TH[key] ?? key, [lang, en]);
 
   const value = useMemo(() => ({ lang, setLang, t }), [lang, setLang, t]);
 

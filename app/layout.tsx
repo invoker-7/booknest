@@ -10,7 +10,8 @@ import Shell from "@/components/Shell";
 // ฟอนต์ถูกดาวน์โหลดตอน build และเสิร์ฟจากโดเมนเดียวกัน (ไม่มี request ไป Google ตอนใช้งาน)
 const sans = IBM_Plex_Sans({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  // ไม่มี 700: ตัวหนาสุดที่ใช้คือ 600 — ลดไฟล์ฟอนต์ที่ต้องโหลดล่วงหน้าทุกหน้า
+  weight: ["400", "500", "600"],
   variable: "--font-sans",
   display: "swap",
 });
@@ -25,6 +26,8 @@ const mono = IBM_Plex_Mono({
   weight: ["400", "500"],
   variable: "--font-mono",
   display: "swap",
+  // ใช้กับป้ายเล็ก ๆ เท่านั้น ไม่ต้องแย่งคิวโหลดกับฟอนต์เนื้อหา
+  preload: false,
 });
 
 export const metadata: Metadata = {

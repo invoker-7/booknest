@@ -1,6 +1,6 @@
 import "server-only";
 import { revalidatePath } from "next/cache";
-import { ordersWithSlip, slipOrderNos } from "@/lib/slips";
+import { slipOrderNos } from "@/lib/slips";
 import { imageBaseUrl, supabaseAdmin } from "@/lib/supabase";
 import { resetCatalogCache } from "@/lib/catalogServer";
 import { categoryOf } from "@/lib/catalog";
@@ -215,17 +215,18 @@ export async function loadTodo(): Promise<AdminTodo> {
 
 export async function listOrders(page = 1, filter: OrderFilter = "all"): Promise<{ orders: AdminOrder[]; total: number }> {
   const from = (Math.max(page, 1) - 1) * ORDER_PAGE_SIZE;
+  // รายชื่อคำสั่งซื้อที่มีสลิป: คำขอเดียว ใช้ทั้งกรองและติดป้ายในตาราง
+  const withSlip = new Set(await slipOrderNos());
   let query = supabaseAdmin().from("orders").select(ORDER_COLUMNS, { count: "exact" });
 
   if (filter === "undelivered") query = query.eq("status", "PAID");
   if (filter === "review" || filter === "unpaid") {
-    const withSlip = await slipOrderNos();
     query = query.eq("status", "PENDING");
     if (filter === "review") {
-      if (withSlip.length === 0) return { orders: [], total: 0 };
-      query = query.in("order_no", withSlip);
-    } else if (withSlip.length) {
-      query = query.not("order_no", "in", `(${withSlip.map((no) => `"${no}"`).join(",")})`);
+      if (withSlip.size === 0) return { orders: [], total: 0 };
+      query = query.in("order_no", [...withSlip]);
+    } else if (withSlip.size) {
+      query = query.not("order_no", "in", `(${[...withSlip].map((no) => `"${no}"`).join(",")})`);
     }
   }
 
@@ -236,9 +237,7 @@ export async function listOrders(page = 1, filter: OrderFilter = "all"): Promise
     .returns<OrderJoin[]>();
   if (error) throw new Error(`orders: ${error.message}`);
   const orders = (data ?? []).map(toAdminOrder);
-  // สลิปมีได้เฉพาะคำสั่งซื้อที่ยังไม่จ่าย — ถามเฉพาะรายการเหล่านั้นในหน้านี้
-  const slips = await ordersWithSlip(orders.filter((o) => o.status === "PENDING").map((o) => o.order_no));
-  return { orders: orders.map((o) => ({ ...o, slip: slips.has(o.order_no) })), total: count ?? 0 };
+  return { orders: orders.map((o) => ({ ...o, slip: o.status === "PENDING" && withSlip.has(o.order_no) })), total: count ?? 0 };
 }
 
 /** คำสั่งซื้อทั้งหมดสำหรับ export (ดึงทีละหน้าจนครบ) */

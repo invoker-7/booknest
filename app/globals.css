@@ -107,7 +107,7 @@ main { min-height: calc(100vh - var(--hdr) - 34px); min-height: calc(100svh - va
   border-bottom: 1px solid var(--line);
 }
 .hdr-row { display: flex; align-items: center; gap: 40px; height: var(--hdr); }
-.wordmark { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; letter-spacing: .22em; color: var(--ink); min-height: 44px; }
+.wordmark { display: inline-flex; align-items: center; gap: 10px; font-weight: 600; font-size: 18px; letter-spacing: .22em; color: var(--ink); min-height: 44px; }
 .hdr-nav { display: flex; gap: 4px; height: 100%; }
 .hdr-nav a {
   display: flex; align-items: center; padding: 0 14px; height: 100%;
@@ -1063,8 +1063,8 @@ button.adm-back:disabled { opacity: .5; }
 .ppay-orders { font-size: 12px; margin-top: 8px; }
 @media (max-width: 760px) { .ppay { grid-template-columns: 1fr; gap: 16px; } }
 .adm-card .ltable .tag { white-space: nowrap; }
-.adm-count { margin-left: auto; min-width: 22px; height: 22px; padding: 0 6px; display: inline-grid; place-items: center; background: #D93025; color: #fff; font-size: 12px; font-weight: 700; border-radius: 11px; font-variant-numeric: tabular-nums; }
-.tabcount { margin-left: 8px; min-width: 20px; padding: 1px 6px; display: inline-block; text-align: center; background: var(--sunk); color: var(--ink-2); font-size: 11.5px; font-weight: 700; border-radius: 10px; }
+.adm-count { margin-left: auto; min-width: 22px; height: 22px; padding: 0 6px; display: inline-grid; place-items: center; background: #D93025; color: #fff; font-size: 12px; font-weight: 600; border-radius: 11px; font-variant-numeric: tabular-nums; }
+.tabcount { margin-left: 8px; min-width: 20px; padding: 1px 6px; display: inline-block; text-align: center; background: var(--sunk); color: var(--ink-2); font-size: 11.5px; font-weight: 600; border-radius: 10px; }
 .tabcount.hot { background: var(--red); color: #fff; }
 .todo { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--line-2); padding: 16px 20px; margin-bottom: 16px; }
 .todo.hot { border-left-color: var(--red); }
