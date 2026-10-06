@@ -82,10 +82,17 @@ export async function fetchMe(): Promise<SessionUser | null> {
 /** ขั้นที่สองหลัง Google: ส่งรหัสจากอีเมล — โยน Error(code) เมื่อไม่ผ่าน */
 export const verifyOtp = (code: string) => postJson<{ ok: true }>("/api/auth/otp", { code });
 
-/** ขอรหัสใหม่ — retryIn = อีกกี่วินาทีจึงขอได้อีก */
-export async function resendOtp(): Promise<{ ok: boolean; error?: string; retryIn?: number }> {
+/**
+ * ขอรหัสทางอีเมล — retryIn = อีกกี่วินาทีจึงขอได้อีก
+ * auto = true ใช้ตอนหน้ากรอกรหัสเปิด: server ส่งเฉพาะเมื่อยังไม่มีรหัสที่ใช้ได้
+ */
+export async function resendOtp(auto = false): Promise<{ ok: boolean; error?: string; retryIn?: number }> {
   try {
-    const res = await fetch("/api/auth/otp/resend", { method: "POST" });
+    const res = await fetch("/api/auth/otp/resend", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ auto }),
+    });
     const data = (await res.json().catch(() => ({}))) as { error?: string; retryIn?: number };
     return { ok: res.ok, error: data.error, retryIn: data.retryIn };
   } catch {

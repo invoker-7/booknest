@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useLang } from "@/components/LangProvider";
 import { useStore } from "@/components/StoreProvider";
 import Plate from "@/components/Plate";
+import ProductArt from "@/components/ProductArt";
 import { Bookmark, Cart, Check, Lock, Star, Library } from "@/components/Icons";
 import { Button, LinkButton, Meta, Price, Rating, ProductTile, PreviewBanner, Notice } from "@/components/ui";
 import { INCLUDED, FAQ, SAMPLE_REVIEWS, discountOf, stamp } from "@/lib/catalog";
@@ -107,7 +108,7 @@ export default function ProductView({ product: p, related, live }: ProductViewPr
         <div className="pd-top">
           <div>
             <div className="pd-plate">
-              <Plate category={p.category} no={p.productNo} label={catLabel} title={title} />
+              <ProductArt p={p} no={p.productNo} label={catLabel} title={title} sizes="(max-width: 900px) 100vw, 640px" priority />
             </div>
           </div>
 

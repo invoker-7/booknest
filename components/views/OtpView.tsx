@@ -16,10 +16,6 @@ interface OtpViewProps {
   next: string;
   length: number;
   minutes: number;
-  /** ต้องรอกี่วินาทีจึงขอรหัสใหม่ได้ */
-  resendSeconds: number;
-  /** callback ส่งอีเมลไม่สำเร็จ — ให้กดส่งใหม่ได้ทันที */
-  sendFailed?: boolean;
 }
 
 const ERRORS: Record<string, TKey> = {
@@ -31,7 +27,7 @@ const ERRORS: Record<string, TKey> = {
 };
 
 /** หน้าเข้าสู่ระบบ ขั้นที่ 2: กรอกรหัสที่ส่งไปยังอีเมล */
-export default function OtpView({ email, next, length, minutes, resendSeconds, sendFailed = false }: OtpViewProps) {
+export default function OtpView({ email, next, length, minutes }: OtpViewProps) {
   const { t } = useLang();
   const router = useRouter();
   const { refresh, signOut } = useAuth();
@@ -39,10 +35,23 @@ export default function OtpView({ email, next, length, minutes, resendSeconds, s
 
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
-  const [resending, setResending] = useState(false);
+  // true ตั้งแต่แรก: หน้านี้ขอให้ server ส่งรหัสเองทันทีที่เปิด
+  const [resending, setResending] = useState(true);
   const [resent, setResent] = useState(false);
-  const [error, setError] = useState<TKey | "">(sendFailed ? "otpErrSend" : "");
-  const [wait, setWait] = useState(sendFailed ? 0 : resendSeconds);
+  const [error, setError] = useState<TKey | "">("");
+  const [wait, setWait] = useState(0);
+  const requested = useRef(false);
+
+  // ส่งรหัสตอนเปิดหน้า (ไม่ใช่ตอน redirect กลับจาก Google) ผู้ใช้จึงเห็นหน้านี้ทันทีโดยไม่ต้องรอ SMTP
+  useEffect(() => {
+    if (requested.current) return; // StrictMode เรียก effect สองรอบในโหมด dev
+    requested.current = true;
+    void resendOtp(true).then((res) => {
+      setResending(false);
+      if (res.retryIn) setWait(res.retryIn);
+      if (!res.ok && res.error !== "otp_cooldown") setError(ERRORS[res.error || ""] || "otpErrSend");
+    });
+  }, []);
 
   useEffect(() => {
     if (wait <= 0) return;
@@ -157,10 +166,12 @@ export default function OtpView({ email, next, length, minutes, resendSeconds, s
         </form>
 
         <p className="auth-foot">
-          {wait > 0 ? (
+          {resending ? (
+            <span className="muted" role="status">{t("otpSending")}</span>
+          ) : wait > 0 ? (
             <span className="muted" aria-live="off">{t("otpResendIn").replace("{n}", String(wait))}</span>
           ) : (
-            <button type="button" className="linkbtn" onClick={resend} disabled={resending}>
+            <button type="button" className="linkbtn" onClick={resend}>
               {t("otpResend")}
             </button>
           )}

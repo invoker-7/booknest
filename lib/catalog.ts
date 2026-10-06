@@ -68,6 +68,10 @@ export function stamp(value: string | number | Date | null | undefined): string 
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+/** URL รูปสินค้าที่ร้านอัปโหลด — null เมื่อยังไม่มี (คอลัมน์ cover รุ่นเก่าเก็บชื่อชุดปก ไม่ใช่ URL) */
+export const imageOf = (p: { cover?: string | null }): string | null =>
+  p.cover && /^https?:\/\//.test(p.cover) ? p.cover : null;
+
 /** เติม metadata ให้สินค้าหนึ่งชิ้น — ค่าในฐานข้อมูลมาก่อนเสมอ */
 export function enrich(p: BookRow, index = 0): Product {
   const category = categoryOf(p);

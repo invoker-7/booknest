@@ -1,6 +1,6 @@
 import "server-only";
 import { revalidatePath } from "next/cache";
-import { supabaseAdmin } from "@/lib/supabase";
+import { imageBaseUrl, supabaseAdmin } from "@/lib/supabase";
 import { resetCatalogCache } from "@/lib/catalogServer";
 import { categoryOf } from "@/lib/catalog";
 import type {
@@ -265,6 +265,10 @@ export function normalizeProduct(raw: Record<string, unknown>): { product: Produ
   const file_path = str(raw.file_path, 300);
   if (!file_path) return { error: "file_required" };
 
+  // รับเฉพาะรูปที่อัปโหลดเข้า bucket ของร้าน ไม่รับ URL จากที่อื่น
+  const coverRaw = str(raw.cover, 500);
+  const cover = coverRaw.startsWith(imageBaseUrl()) ? coverRaw : null;
+
   const short_th = str(raw.short_th, 300) || str(raw.short_en, 300) || title_th;
   const long_th = str(raw.long_th) || str(raw.long_en) || short_th;
   const author_th = str(raw.author_th || raw.author, 120) || str(raw.author_en, 120) || "VECTOR";
@@ -288,6 +292,7 @@ export function normalizeProduct(raw: Record<string, unknown>): { product: Produ
       license: (licenseRaw as License) || null,
       file_path,
       file_size: str(raw.file_size, 20) || "—",
+      cover,
       published: bool(raw.published, true),
       sort: Number.isFinite(sort) && sort >= 0 ? sort : 0,
       shop_id: str(raw.shop_id, 60) || null,

@@ -56,6 +56,7 @@ button { cursor: pointer; border: 0; background: none; padding: 0; }
 a { color: inherit; text-decoration: none; }
 svg { display: block; flex: none; }
 .plate text, .hero-art text { font-family: var(--mono); }
+.plate-img { display: block; object-fit: cover; }
 img { max-width: 100%; display: block; }
 s { text-decoration-thickness: 1px; }
 
@@ -1017,6 +1018,11 @@ html[lang="th"] .article h1 { line-height: 1.25; }
 .adm-back:hover { text-decoration: underline; text-underline-offset: 4px; }
 button.adm-back { font-size: inherit; text-align: left; }
 button.adm-back:disabled { opacity: .5; }
+.imgbox { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+.imgbox-preview { width: 240px; max-width: 100%; aspect-ratio: 4 / 3; overflow: hidden; border: 1px solid var(--line); flex: none; }
+.imgbox-preview .plate { width: 100%; height: 100%; }
+.imgbox .acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.imgbox-side { display: flex; flex-direction: column; gap: 12px; flex: 1; min-width: 200px; font-size: 14px; }
 .role-select { width: auto; min-width: 150px; min-height: 40px; }
 .user-you { margin-left: 8px; }
 .adm-main { min-height: 0; padding: 32px 40px 96px; max-width: 1360px; width: 100%; }

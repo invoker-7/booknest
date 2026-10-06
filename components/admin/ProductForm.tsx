@@ -6,11 +6,12 @@ import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { useLang } from "@/components/LangProvider";
 import { useStore } from "@/components/StoreProvider";
 import { AdminHead } from "@/components/admin/AdminShell";
-import { Alert, ArrowLeft, Check, Upload } from "@/components/Icons";
+import { Alert, ArrowLeft, Check, Trash, Upload } from "@/components/Icons";
+import ProductArt from "@/components/ProductArt";
 import { Button, LinkButton, Notice } from "@/components/ui";
 import { sendJson } from "@/lib/apiClient";
 import { CATEGORIES, categoryOf } from "@/lib/catalog";
-import { fileSize, MAX_UPLOAD_BYTES, UPLOAD_EXTENSIONS } from "@/lib/format";
+import { fileSize, IMAGE_EXTENSIONS, MAX_IMAGE_BYTES, MAX_UPLOAD_BYTES, UPLOAD_EXTENSIONS } from "@/lib/format";
 import type { TKey } from "@/lib/i18n";
 import type { BookRow, ShopRef } from "@/lib/types";
 
@@ -23,6 +24,8 @@ const ERRORS: Record<string, TKey> = {
   file_required: "admErrFile",
   file_type: "admErrFileType",
   file_too_large: "admErrFileSize",
+  image_type: "admErrImageType",
+  image_too_large: "admErrImageSize",
   shop_not_found: "admErrShop",
 };
 
@@ -30,7 +33,7 @@ const LICENSES = ["personal", "commercial", "mit"] as const;
 
 type Fields = Record<
   | "id" | "title_th" | "title_en" | "short_th" | "short_en" | "long_th" | "long_en" | "author_th"
-  | "kind" | "price" | "list_price" | "version" | "license" | "file_path" | "file_size" | "sort" | "shop_id",
+  | "kind" | "price" | "list_price" | "version" | "license" | "file_path" | "file_size" | "cover" | "sort" | "shop_id",
   string
 >;
 
@@ -50,6 +53,7 @@ const initial = (p?: BookRow): Fields => ({
   license: p?.license ?? "",
   file_path: p?.file_path ?? "",
   file_size: p?.file_size ?? "",
+  cover: p?.cover ?? "",
   sort: p?.sort ? String(p.sort) : "",
   shop_id: p?.shop_id ?? "",
 });
@@ -66,12 +70,26 @@ export default function ProductForm({ product, shops }: { product?: BookRow; sho
   const [saving, setSaving] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
   const [error, setError] = useState<TKey | "">("");
+  const [imageBusy, setImageBusy] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+  const imageInput = useRef<HTMLInputElement>(null);
 
   const set = (key: keyof Fields) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setF((prev) => ({ ...prev, [key]: e.target.value }));
 
-  /** ขอ URL อัปโหลดจาก server แล้วส่งไฟล์ตรงไปที่ Storage (XHR เพื่อแสดงความคืบหน้า) */
+  /** ส่งไฟล์ตรงไปที่ Storage ด้วย URL ที่ server ออกให้ (XHR เพื่อแสดงความคืบหน้า) */
+  const put = (url: string, file: File, onProgress?: (percent: number) => void) =>
+    new Promise<void>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("PUT", url);
+      xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+      xhr.upload.onprogress = (ev) => ev.lengthComputable && onProgress?.(Math.round((ev.loaded / ev.total) * 100));
+      xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error("upload_failed")));
+      xhr.onerror = () => reject(new Error("upload_failed"));
+      xhr.send(file);
+    });
+
+  /** ไฟล์สินค้าที่ขาย -> bucket private */
   async function upload(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -88,20 +106,39 @@ export default function ProductForm({ product, shops }: { product?: BookRow; sho
         filename: file.name,
         size: file.size,
       });
-      await new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open("PUT", url);
-        xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
-        xhr.upload.onprogress = (ev) => ev.lengthComputable && setProgress(Math.round((ev.loaded / ev.total) * 100));
-        xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error("upload_failed")));
-        xhr.onerror = () => reject(new Error("upload_failed"));
-        xhr.send(file);
-      });
+      await put(url, file, setProgress);
       setF((prev) => ({ ...prev, file_path: path, file_size: fileSize(file.size) }));
     } catch (err) {
       setError(ERRORS[err instanceof Error ? err.message : ""] || "admErrUpload");
     } finally {
       setProgress(null);
+    }
+  }
+
+  /** รูปสินค้าที่แสดงในหน้าร้าน -> bucket สาธารณะ */
+  async function uploadImage(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setError("");
+
+    const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+    if (!IMAGE_EXTENSIONS.includes(ext)) return setError("admErrImageType");
+    if (file.size > MAX_IMAGE_BYTES) return setError("admErrImageSize");
+
+    setImageBusy(true);
+    try {
+      const { url, publicUrl } = await sendJson<{ url: string; publicUrl: string }>("/api/admin/upload", {
+        filename: file.name,
+        size: file.size,
+        kind: "image",
+      });
+      await put(url, file);
+      setF((prev) => ({ ...prev, cover: publicUrl }));
+    } catch (err) {
+      setError(ERRORS[err instanceof Error ? err.message : ""] || "admErrUpload");
+    } finally {
+      setImageBusy(false);
     }
   }
 
@@ -138,7 +175,7 @@ export default function ProductForm({ product, shops }: { product?: BookRow; sho
         action={
           <>
             <LinkButton href="/admin/products" variant="ghost" size="small">{t("cancel")}</LinkButton>
-            <Button type="submit" size="small" loading={saving} loadingText={t("loading")} disabled={uploading}>
+            <Button type="submit" size="small" loading={saving} loadingText={t("loading")} disabled={uploading || imageBusy}>
               <Check size={16} /> {t("admSave")}
             </Button>
           </>
@@ -178,6 +215,43 @@ export default function ProductForm({ product, shops }: { product?: BookRow; sho
               </div>
             </div>
             <span className="hint muted">{t("admBlankHint")}</span>
+          </section>
+
+          <section className="adm-card">
+            <header><h2>{t("admImage")}</h2></header>
+            <input
+              ref={imageInput}
+              type="file"
+              className="sr-only"
+              tabIndex={-1}
+              accept={IMAGE_EXTENSIONS.map((x) => `.${x}`).join(",")}
+              onChange={uploadImage}
+            />
+            <div className="imgbox">
+              <div className="imgbox-preview">
+                <ProductArt p={{ cover: f.cover, category: categoryOf({ kind: f.kind }) }} title="" bare sizes="240px" />
+              </div>
+              <div className="imgbox-side">
+                <span className="muted">{t(f.cover ? "admImageSet" : "admImageNone")}</span>
+                <div className="acts">
+                  <Button
+                    variant="secondary"
+                    size="small"
+                    onClick={() => imageInput.current?.click()}
+                    loading={imageBusy}
+                    loadingText={t("loading")}
+                  >
+                    <Upload size={16} /> {f.cover ? t("admImageReplace") : t("admImageUpload")}
+                  </Button>
+                  {f.cover && !imageBusy && (
+                    <Button variant="ghost" size="small" onClick={() => setF((prev) => ({ ...prev, cover: "" }))}>
+                      <Trash size={16} /> {t("admImageRemove")}
+                    </Button>
+                  )}
+                </div>
+                <span className="hint muted">{t("admImageHint")}</span>
+              </div>
+            </div>
           </section>
 
           <section className="adm-card">

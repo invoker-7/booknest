@@ -13,7 +13,7 @@ export type ExportFormat = (typeof EXPORT_FORMATS)[number];
 export const PRODUCT_COLUMNS = [
   "id", "title_th", "title_en", "short_th", "short_en", "long_th", "long_en",
   "author_th", "author_en", "kind", "price", "list_price", "version", "license",
-  "file_path", "file_size", "published", "sort", "shop_id",
+  "file_path", "file_size", "cover", "published", "sort", "shop_id",
 ];
 
 const USER_COLUMNS = ["email", "name", "member", "role", "joined", "orders", "spent"];

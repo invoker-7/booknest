@@ -280,6 +280,8 @@ export interface ProductInput {
   license: License | null;
   file_path: string;
   file_size: string;
+  /** URL รูปสินค้าใน bucket สาธารณะ — null = ใช้ภาพแบบร่างตามหมวดหมู่ */
+  cover: string | null;
   published: boolean;
   sort: number;
   shop_id: string | null;
