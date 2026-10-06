@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLang } from "@/components/LangProvider";
 import { Search, Close, Grid, List, Filter } from "@/components/Icons";
 import { Button, ProductRow, ProductTile, Empty, PreviewBanner } from "@/components/ui";
@@ -115,9 +116,18 @@ function FilterGroups({ f, setF, products, idp }: FilterGroupsProps) {
 interface CatalogViewProps {
   products: Product[];
   live: boolean;
-  /** ค่าเริ่มต้นจาก URL: /products?q=...&cat=... (อ่านที่ฝั่ง server) */
-  initialQuery?: string;
-  initialCategory?: string;
+}
+
+/**
+ * อ่านตัวกรองจาก URL (/products?q=...&cat=...) ที่เบราว์เซอร์ แล้วส่งขึ้นไปให้หน้า
+ * แยกเป็นคอมโพเนนต์ใน <Suspense> เพื่อให้ตัวหน้าเองยัง render แบบ static ได้
+ */
+function UrlFilters({ onChange }: { onChange: (query: string, category: string) => void }) {
+  const params = useSearchParams();
+  const query = params.get("q") ?? "";
+  const category = params.get("cat") ?? "";
+  useEffect(() => onChange(query, category), [query, category, onChange]);
+  return null;
 }
 
 const filtersFor = (category: string): Filters => {
@@ -125,26 +135,21 @@ const filtersFor = (category: string): Filters => {
   return { ...EMPTY, cats: cat ? [cat] : [] };
 };
 
-export default function CatalogView({ products, live, initialQuery = "", initialCategory = "" }: CatalogViewProps) {
+export default function CatalogView({ products, live }: CatalogViewProps) {
   const { t } = useLang();
-  const [q, setQ] = useState(initialQuery);
-  const [f, setF] = useState<Filters>(() => filtersFor(initialCategory));
+  const [q, setQ] = useState("");
+  const [f, setF] = useState<Filters>(EMPTY);
   const [sort, setSort] = useState<SortKey>("featured");
   const [view, setView] = useState<ViewMode>("grid");
   const [sheet, setSheet] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const sheetClose = useRef<HTMLButtonElement>(null);
 
-  // URL เปลี่ยนขณะอยู่หน้านี้ (เช่น ค้นหาจาก header) ให้ตัวกรองตามไปด้วย
-  const mounted = useRef(false);
-  useEffect(() => {
-    if (!mounted.current) {
-      mounted.current = true;
-      return;
-    }
-    setQ(initialQuery);
-    setF(filtersFor(initialCategory));
-  }, [initialQuery, initialCategory]);
+  // เปิดหน้าด้วย URL ที่มีตัวกรอง หรือ URL เปลี่ยนขณะอยู่หน้านี้ (เช่น ค้นหาจาก header) ให้ตัวกรองตามไปด้วย
+  const applyUrl = useCallback((query: string, category: string) => {
+    setQ(query);
+    setF(filtersFor(category));
+  }, []);
 
   useEffect(() => {
     try {
@@ -203,6 +208,7 @@ export default function CatalogView({ products, live, initialQuery = "", initial
 
   return (
     <>
+      <Suspense fallback={null}><UrlFilters onChange={applyUrl} /></Suspense>
       <PreviewBanner live={live} />
       <div className="wrap">
         <header className="phead" style={{ borderBottom: 0, paddingBottom: 0 }}>

@@ -8,7 +8,7 @@ import ProductArt from "./ProductArt";
 import { Arrow, Check, Spinner, Star, Alert, Info } from "./Icons";
 import { money, pick } from "@/lib/format";
 import { discountOf } from "@/lib/catalog";
-import type { OrderStatus, Product } from "@/lib/types";
+import type { OrderStatus, PayOptions, Product } from "@/lib/types";
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "light" | "outline-light";
 type ButtonSize = "small";
@@ -278,7 +278,20 @@ export function Notice({ tone = "info", title, children }: NoticeProps) {
   );
 }
 
-/** แถบแจ้งว่ากำลังแสดงแคตตาล็อกตัวอย่าง */
+/** กล่องบอกวิธีชำระเงินของร้าน: QR พร้อมเพย์ หรือโหมดทดสอบในเครื่อง — ไม่แสดงเมื่อร้านยังไม่เปิดรับชำระเงิน */
+export function PayNote({ pay }: { pay: PayOptions }) {
+  const { t } = useLang();
+  if (!pay.method) return null;
+  const mock = pay.method === "mock";
+  return (
+    <div className="paydemo">
+      <span className={`tag ${mock ? "amber" : "blue"}`}>{mock ? t("demoTag") : "PROMPTPAY"}</span>
+      <p>{t(mock ? "demoBody" : "promptPayBody")}</p>
+    </div>
+  );
+}
+
+/** แถบแจ้งว่าร้านยังไม่ได้เชื่อมต่อฐานข้อมูล */
 export function PreviewBanner({ live }: { live: boolean }) {
   const { t } = useLang();
   if (live) return null;

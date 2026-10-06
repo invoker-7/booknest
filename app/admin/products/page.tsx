@@ -1,10 +1,10 @@
 import ProductsAdminView from "@/components/admin/ProductsAdminView";
 import { listAllProducts } from "@/lib/admin";
-import { requireAdmin } from "@/lib/auth";
+import { withAdmin } from "@/lib/auth";
 
 export const metadata = { title: "Products" };
 
 export default async function AdminProductsPage() {
-  await requireAdmin("/admin/products");
-  return <ProductsAdminView products={await listAllProducts()} />;
+  const { data } = await withAdmin("/admin/products", listAllProducts);
+  return <ProductsAdminView products={data} />;
 }

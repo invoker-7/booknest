@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { getOrder, isSupabaseConfigured } from "@/lib/supabase";
 import PayView from "@/components/views/PayView";
+import { payOptions } from "@/lib/payments";
 import { SetupNotice } from "@/components/ui";
 import type { SafeOrder } from "@/lib/types";
 export const dynamic = "force-dynamic";
@@ -24,5 +25,5 @@ export default async function PayPage({ params }: { params: { orderNo: string } 
     created_at: order.created_at,
   };
 
-  return <PayView order={safe} book={order.book} />;
+  return <PayView order={safe} book={order.book} pay={payOptions} />;
 }

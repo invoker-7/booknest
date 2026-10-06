@@ -1,10 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useLang } from "@/components/LangProvider";
+import { useStore } from "@/components/StoreProvider";
 import { AdminHead } from "@/components/admin/AdminShell";
-import { Download } from "@/components/Icons";
-import { Empty, StatusTag } from "@/components/ui";
+import { Check, Download } from "@/components/Icons";
+import { Button, Empty, Notice, StatusTag } from "@/components/ui";
+import { sendJson } from "@/lib/apiClient";
 import { fmtDate, fmtTime, money } from "@/lib/format";
 import type { AdminOrder } from "@/lib/types";
 
@@ -18,6 +22,26 @@ interface OrdersAdminViewProps {
 export default function OrdersAdminView({ orders, total, page, pageSize }: OrdersAdminViewProps) {
   const { t, lang } = useLang();
   const pages = Math.max(1, Math.ceil(total / pageSize));
+  const { notify } = useStore();
+  const router = useRouter();
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState(false);
+
+  /** ได้รับเงินแล้ว (เช่น โอนผ่านพร้อมเพย์): บันทึกการชำระและส่งไฟล์ให้ผู้ซื้อ */
+  async function confirm(o: AdminOrder) {
+    if (!window.confirm(`${t("admConfirmPaidAsk")}\n\n${o.order_no} · ${money(o.amount, lang)}\n${o.customer_email}`)) return;
+    setBusy(o.order_no);
+    setError(false);
+    try {
+      await sendJson(`/api/admin/orders/${encodeURIComponent(o.order_no)}/confirm`);
+      notify(t("admConfirmPaidDone"));
+      router.refresh();
+    } catch {
+      setError(true);
+    } finally {
+      setBusy("");
+    }
+  }
 
   return (
     <>
@@ -30,6 +54,8 @@ export default function OrdersAdminView({ orders, total, page, pageSize }: Order
           </a>
         }
       />
+
+      {error && <div className="adm-gap"><Notice tone="error">{t("genericError")}</Notice></div>}
 
       {orders.length === 0 ? (
         <Empty title={t("admNoOrders")} />
@@ -44,6 +70,7 @@ export default function OrdersAdminView({ orders, total, page, pageSize }: Order
                 <th scope="col">{t("admDate")}</th>
                 <th scope="col">{t("colStatus")}</th>
                 <th scope="col" className="num">{t("colAmount")}</th>
+                <th scope="col"><span className="sr-only">{t("admConfirmPaid")}</span></th>
               </tr>
             </thead>
             <tbody>
@@ -58,6 +85,15 @@ export default function OrdersAdminView({ orders, total, page, pageSize }: Order
                   <td className="mono">{fmtDate(o.created_at, lang)} {fmtTime(o.created_at)}</td>
                   <td><StatusTag status={o.status} /></td>
                   <td className="num">{money(o.amount, lang)}</td>
+                  <td>
+                    {o.status === "PENDING" && (
+                      <div className="acts">
+                        <Button variant="secondary" size="small" onClick={() => confirm(o)} loading={busy === o.order_no} loadingText={t("loading")}>
+                          <Check size={16} /> {t("admConfirmPaid")}
+                        </Button>
+                      </div>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

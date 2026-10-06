@@ -37,7 +37,7 @@ export interface ShopRow extends ShopRef {
   created_at?: string | null;
 }
 
-/** ตาราง books (สินค้าดิจิทัล) — ฟิลด์ท้าย ๆ เป็นค่าที่ข้อมูลตัวอย่างกำหนดเองได้ */
+/** ตาราง books (สินค้าดิจิทัล) */
 export interface BookRow {
   id: string;
   title_th: string;
@@ -82,7 +82,6 @@ export interface Product extends Omit<BookRow, "rating" | "reviews" | "platform"
   creatorName: string | null;
   rating: number;
   reviews: number;
-  sample?: boolean;
 }
 
 /** ข้อมูลสินค้าย่อที่เก็บในตะกร้า / รายการที่บันทึก (localStorage) */
@@ -99,10 +98,9 @@ export interface CartItem {
   format: string;
   productNo: string;
   creatorName: string | null;
-  sample: boolean;
 }
 
-/** ข้อมูลเพิ่มเติมของครีเอเตอร์ (มีในข้อมูลตัวอย่าง) */
+/** ข้อมูลเพิ่มเติมของครีเอเตอร์ */
 export interface CreatorProfile extends ShopRow {
   since?: number;
   location?: string;
@@ -184,6 +182,17 @@ export interface LocalOrder {
   account?: boolean;
 }
 
+/** วิธีชำระเงิน: QR พร้อมเพย์ (ร้านยืนยันรับเงินเอง) หรือแบบจำลองตอนทดสอบในเครื่อง */
+export type PayMethod = "promptpay" | "mock";
+
+/** วิธีชำระเงินที่ร้านใช้อยู่ ส่งให้หน้าเว็บแสดง */
+export interface PayOptions {
+  /** null = ร้านยังไม่ได้เปิดรับชำระเงิน (ปิดการสั่งซื้อ) */
+  method: PayMethod | null;
+  /** เบอร์พร้อมเพย์ของร้านแบบปิดบางส่วน */
+  promptPayId: string;
+}
+
 export interface ReceiptLine {
   orderNo: string;
   bookId?: string;
@@ -203,6 +212,8 @@ export interface Receipt {
   email: string;
   orders: ReceiptLine[];
   total?: number;
+  /** true = ส่งผู้ซื้อไปหน้า QR พร้อมเพย์แล้ว ยังไม่ได้ยืนยันกับ server ว่าร้านรับเงินแล้ว */
+  awaiting?: boolean;
 }
 
 export interface Article {
@@ -218,16 +229,6 @@ export interface Article {
   dek_en: string;
   body_th: string[];
   body_en: string[];
-}
-
-export interface SampleReview {
-  name: string;
-  role_th: string;
-  role_en: string;
-  rating: number;
-  date: string;
-  th: string;
-  en: string;
 }
 
 export interface CatalogFilters {

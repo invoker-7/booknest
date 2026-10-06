@@ -34,8 +34,8 @@ function getTransporter(): Transporter {
 /**
  * ส่งอีเมลลิงก์ดาวน์โหลดหลังสถานะเป็น PAID
  *
- * ถ้ายังไม่ได้ตั้ง SMTP_USER หรือ SMTP_PASS จะทำงานในโหมด mock
- * (ใบงานอนุญาตให้ "แสดงการส่งอีเมลสำเร็จสำหรับการทดสอบ" ได้)
+ * ถ้ายังไม่ได้ตั้ง SMTP_USER หรือ SMTP_PASS จะคืน "mock" โดยไม่ส่งอะไร
+ * (ผู้ซื้อยังดาวน์โหลดได้จากหน้าเว็บ หน้าผลลัพธ์จะแจ้งว่าไม่ได้ส่งอีเมล)
  */
 export async function sendDownloadEmail({
   to,
@@ -146,17 +146,14 @@ function emailHtml({ name, orderNo, bookTitle, downloadUrl }: Omit<DownloadEmail
   font-family:'IBM Plex Sans','Helvetica Neue',Arial,'IBM Plex Sans Thai','Noto Sans Thai',sans-serif;color:#17191C">
   <div style="max-width:520px;margin:0 auto;background:#ffffff;border:1px solid #D9D9D5;padding:32px">
 
-    <div style="font-size:18px;font-weight:700;letter-spacing:.22em;color:#17191C;margin-bottom:4px">VECTOR</div>
-    <div style="font-size:12px;color:#5C6066;letter-spacing:.06em;margin-bottom:24px;
-                padding-bottom:16px;border-bottom:1px solid #17191C">
-      DEMO BUILD — ระบบสาธิต ไม่มีการรับชำระเงินจริง
-    </div>
+    <div style="font-size:18px;font-weight:700;letter-spacing:.22em;color:#17191C;margin-bottom:24px;
+                padding-bottom:16px;border-bottom:1px solid #17191C">VECTOR</div>
 
     <div style="font-size:12px;color:#1F3A68;letter-spacing:.16em;margin-bottom:8px">MISSION COMPLETE</div>
     <h1 style="margin:0 0 10px;font-size:22px;font-weight:500">สินค้าของคุณพร้อมแล้ว</h1>
     <p style="margin:0 0 22px;font-size:15px;line-height:1.7;color:#3A3E44">
       สวัสดีคุณ ${escapeHtml(name)}<br>
-      คำสั่งซื้อ <strong>${escapeHtml(orderNo)}</strong> ชำระเงิน (จำลอง) เรียบร้อยแล้ว
+      คำสั่งซื้อ <strong>${escapeHtml(orderNo)}</strong> ชำระเงินเรียบร้อยแล้ว
     </p>
 
     <div style="background:#F4F3EF;border:1px solid #D9D9D5;padding:16px;margin-bottom:24px">
@@ -168,8 +165,8 @@ function emailHtml({ name, orderNo, bookTitle, downloadUrl }: Omit<DownloadEmail
 
     <hr style="border:none;border-top:1px solid #D9D9D5;margin:26px 0">
     <p style="margin:0;font-size:12px;color:#5C6066;line-height:1.7">
-      อีเมลนี้ถูกส่งจากระบบสาธิต ไม่ใช่ร้านค้าจริง และไม่มีการเรียกเก็บเงินใด ๆ<br>
-      This message comes from a demo build. No payment was taken.
+      คุณได้รับอีเมลนี้เพราะมีการสั่งซื้อจาก VECTOR ด้วยอีเมลนี้ ดาวน์โหลดซ้ำได้จากหน้า "คลังของฉัน"<br>
+      You're receiving this because an order was placed at VECTOR with this address.
     </p>
   </div>
 </body></html>`;

@@ -1,10 +1,10 @@
 import DashboardView from "@/components/admin/DashboardView";
 import { loadStats } from "@/lib/admin";
-import { requireAdmin } from "@/lib/auth";
+import { withAdmin } from "@/lib/auth";
 
 export const metadata = { title: "Dashboard" };
 
 export default async function AdminDashboardPage() {
-  await requireAdmin();
-  return <DashboardView initial={await loadStats()} />;
+  const { data } = await withAdmin("/admin", () => loadStats());
+  return <DashboardView initial={data} />;
 }

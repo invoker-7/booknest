@@ -32,7 +32,8 @@ export async function middleware(req: NextRequest) {
     },
   });
 
-  // getUser ตรวจ token กับ Supabase Auth และ refresh ให้เมื่อหมดอายุ
-  const { data } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
-  return data.user ? res : login();
+  // getSession อ่าน token จาก cookie และยิงไป Supabase เฉพาะตอนต้อง refresh (token ใกล้หมดอายุ)
+  // ไม่ได้ใช้ตัดสินสิทธิ์: ทุกหน้าใน /admin ตรวจ token กับ Supabase Auth เองอีกครั้ง (requireAdmin)
+  const { data } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+  return data.session ? res : login();
 }

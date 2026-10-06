@@ -6,7 +6,7 @@ import { LangToggle } from "@/components/Shell";
 import { TextLink } from "@/components/ui";
 import { FAQ } from "@/lib/catalog";
 
-const LIMITS = ["limit1", "limit2", "limit3", "limit4"] as const;
+const LIMITS = ["limit2", "limit3"] as const;
 
 export default function AboutView() {
   const { t } = useLang();
@@ -23,7 +23,7 @@ export default function AboutView() {
 
       <section className="doc" style={{ borderTop: 0, paddingTop: 48 }} aria-labelledby="about-limits">
         <div className="doc-label">
-          <b>01 — Limits</b>
+          <b>01 — Notes</b>
           <h2 id="about-limits">{t("limits")}</h2>
         </div>
         <div className="doc-body">

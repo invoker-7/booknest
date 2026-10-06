@@ -51,11 +51,9 @@ function remember(o: LookupOrder): void {
 /** คลังของฉัน — สินค้าที่ซื้อแล้ว + รายการที่บันทึก + ค้นหาคำสั่งซื้อเดิม */
 interface LibraryViewProps {
   products: Product[];
-  /** ?order=ORD-... จาก URL ใช้เติมฟอร์มค้นหา */
-  initialOrderNo?: string;
 }
 
-export default function LibraryView({ products, initialOrderNo = "" }: LibraryViewProps) {
+export default function LibraryView({ products }: LibraryViewProps) {
   const { t, lang } = useLang();
   const { ready, orders, saved, refresh } = useStore();
 
@@ -63,12 +61,18 @@ export default function LibraryView({ products, initialOrderNo = "" }: LibraryVi
   const [busy, setBusy] = useState("");
   const [failed, setFailed] = useState("");
 
-  const [no, setNo] = useState(initialOrderNo);
+  const [no, setNo] = useState("");
   const [email, setEmail] = useState("");
   const [touched, setTouched] = useState(false);
   const [finding, setFinding] = useState(false);
   const [result, setResult] = useState<LookupResult>("");
   const synced = useRef(false);
+
+  // ?order=ORD-... จาก URL ใช้เติมฟอร์มค้นหา (อ่านที่เบราว์เซอร์ หน้านี้จึงเป็น static ได้)
+  useEffect(() => {
+    const order = new URLSearchParams(window.location.search).get("order");
+    if (order) setNo(order);
+  }, []);
 
   const byId = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
 
