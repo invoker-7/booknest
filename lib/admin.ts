@@ -1,15 +1,19 @@
 import "server-only";
 import { revalidatePath } from "next/cache";
-import { supabaseAdmin } from "@/lib/supabase";
+import { imageBaseUrl, supabaseAdmin } from "@/lib/supabase";
 import { resetCatalogCache } from "@/lib/catalogServer";
 import { categoryOf } from "@/lib/catalog";
 import type {
+  ActivityEvent,
   AdminCustomer,
   AdminOrder,
+  AdminReport,
   AdminStats,
+  AdminUser,
   BookRow,
   License,
   OrderStatus,
+  UserRole,
   ProductInput,
   ShopRef,
 } from "@/lib/types";
@@ -87,6 +91,80 @@ export async function loadStats(days = 30): Promise<AdminStats> {
   };
 }
 
+/* ---------- รายงาน ---------- */
+
+export const REPORT_PERIODS = [7, 30, 90] as const;
+export type ReportPeriod = (typeof REPORT_PERIODS)[number];
+const ACTIVITY_LIMIT = 40;
+
+interface ActivityOrder {
+  order_no: string;
+  amount: number;
+  customer_email: string;
+  created_at: string;
+  paid_at: string | null;
+  delivered_at: string | null;
+  email_sent: boolean | null;
+  email_note: string | null;
+}
+
+/**
+ * บันทึกกิจกรรมล่าสุด — ไม่มีตาราง log แยก
+ * ประกอบจากเวลาที่ระบบบันทึกไว้อยู่แล้ว: สร้าง/ชำระ/จัดส่งคำสั่งซื้อ อีเมลที่ส่งไม่ถึง และสมาชิกใหม่
+ */
+function toActivity(orders: ActivityOrder[], members: { email: string; created_at: string | null }[]): ActivityEvent[] {
+  const events: ActivityEvent[] = [];
+  for (const o of orders) {
+    const base = { ref: o.order_no, who: o.customer_email, amount: o.amount };
+    events.push({ ...base, at: o.created_at, kind: "order_created" });
+    if (o.paid_at) events.push({ ...base, at: o.paid_at, kind: "order_paid" });
+    if (o.delivered_at) events.push({ ...base, at: o.delivered_at, kind: "order_delivered" });
+    else if (o.paid_at && o.email_sent === false && o.email_note) events.push({ ...base, at: o.paid_at, kind: "email_failed" });
+  }
+  for (const m of members) {
+    if (m.created_at) events.push({ at: m.created_at, kind: "member_joined", ref: null, who: m.email, amount: null });
+  }
+  return events.sort((a, b) => b.at.localeCompare(a.at)).slice(0, ACTIVITY_LIMIT);
+}
+
+export async function loadReport(days: ReportPeriod): Promise<AdminReport> {
+  const db = supabaseAdmin();
+  const [stats, orders, members] = await Promise.all([
+    db.rpc("admin_stats", { days }).retry(false),
+    db
+      .from("orders")
+      .select("order_no, amount, customer_email, created_at, paid_at, delivered_at, email_sent, email_note")
+      .order("created_at", { ascending: false })
+      .limit(ACTIVITY_LIMIT)
+      .retry(false)
+      .returns<ActivityOrder[]>(),
+    db
+      .from("profiles")
+      .select("email, created_at")
+      .order("created_at", { ascending: false })
+      .limit(ACTIVITY_LIMIT)
+      .retry(false)
+      .returns<{ email: string; created_at: string | null }[]>(),
+  ]);
+  if (stats.error) throw new Error(`admin_stats: ${stats.error.message}`);
+  if (orders.error) throw new Error(`report orders: ${orders.error.message}`);
+  if (members.error) throw new Error(`report members: ${members.error.message}`);
+
+  const raw = stats.data as RawStats;
+  return {
+    days,
+    sales: raw.cur.sales,
+    orders: raw.cur.orders,
+    customers: raw.cur.customers,
+    salesChange: change(raw.cur.sales, raw.prev.sales),
+    ordersChange: change(raw.cur.orders, raw.prev.orders),
+    customersChange: change(raw.cur.customers, raw.prev.customers),
+    daily: raw.daily,
+    top: raw.top,
+    activity: toActivity(orders.data ?? [], members.data ?? []),
+  };
+}
+
 /* ---------- รายการ ---------- */
 
 /** สินค้าทั้งหมด รวมที่ซ่อนจากหน้าร้าน */
@@ -147,6 +225,100 @@ export async function listCustomers(): Promise<AdminCustomer[]> {
   const { data, error } = await supabaseAdmin().rpc("admin_customers").retry(false);
   if (error) throw new Error(`customers: ${error.message}`);
   return (data ?? []) as AdminCustomer[];
+}
+
+/* ---------- ผู้ใช้ (สมาชิก) ---------- */
+
+type UserRow = Omit<AdminUser, "locked" | "joined"> & { created_at: string | null };
+
+const toAdminUser = (row: UserRow, isLocked: (email: string) => boolean): AdminUser => ({
+  id: row.id,
+  email: row.email,
+  name: row.name || "",
+  role: isLocked(row.email) ? "admin" : row.role,
+  joined: row.created_at,
+  locked: isLocked(row.email),
+});
+
+/** สมาชิกทั้งหมด ใหม่สุดก่อน — isLocked บอกว่าอีเมลไหนเป็นผู้ดูแลจาก env */
+export async function listUsers(isLocked: (email: string) => boolean): Promise<AdminUser[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("profiles")
+    .select("id, email, name, role, created_at")
+    .order("created_at", { ascending: false })
+    .retry(false)
+    .returns<UserRow[]>();
+  if (error) throw new Error(`users: ${error.message}`);
+  return (data ?? []).map((row) => toAdminUser(row, isLocked));
+}
+
+export async function getUserRow(id: string): Promise<{ id: string; email: string; role: UserRole } | null> {
+  const { data } = await supabaseAdmin()
+    .from("profiles")
+    .select("id, email, role")
+    .eq("id", id)
+    .retry(false)
+    .maybeSingle<{ id: string; email: string; role: UserRole }>();
+  return data ?? null;
+}
+
+/** เปลี่ยนสิทธิ์ของสมาชิก — คืน false เมื่อบันทึกไม่สำเร็จ */
+export async function setUserRole(id: string, role: UserRole): Promise<boolean> {
+  const { error } = await supabaseAdmin().from("profiles").update({ role }).eq("id", id);
+  if (error) console.error("setUserRole:", error.message);
+  return !error;
+}
+
+/** ลบบัญชี (โปรไฟล์และรหัส OTP ถูกลบตาม, คำสั่งซื้อเดิมยังอยู่แต่ไม่ผูกกับบัญชี) */
+export async function deleteUser(id: string): Promise<boolean> {
+  const { error } = await supabaseAdmin().auth.admin.deleteUser(id);
+  if (error) console.error("deleteUser:", error.message);
+  return !error;
+}
+
+/* ---------- ข้อมูลดิบ (อ่านอย่างเดียว) ---------- */
+
+/** ตารางที่หน้า "ข้อมูลดิบ" เปิดดูได้ — ไม่รวม login_otps (รหัสยืนยัน) และตารางของ Supabase Auth */
+export const RAW_TABLES = ["books", "orders", "profiles", "shops", "order_counters"] as const;
+export type RawTable = (typeof RAW_TABLES)[number];
+export const RAW_PAGE_SIZE = 50;
+
+// เรียงใหม่สุดก่อนเมื่อมีคอลัมน์เวลา ไม่งั้นเรียงตามคีย์หลัก ให้ลำดับคงที่ระหว่างหน้า
+const RAW_ORDER: Record<RawTable, { column: string; ascending: boolean }> = {
+  books: { column: "sort", ascending: true },
+  orders: { column: "created_at", ascending: false },
+  profiles: { column: "created_at", ascending: false },
+  shops: { column: "id", ascending: true },
+  order_counters: { column: "day", ascending: false },
+};
+
+export interface RawTableData {
+  columns: string[];
+  rows: Record<string, unknown>[];
+  total: number;
+  failed: boolean;
+}
+
+/** อ่านหนึ่งหน้าของตาราง ทุกคอลัมน์ตามที่เก็บจริง */
+export async function readRawTable(table: RawTable, page: number): Promise<RawTableData> {
+  const start = (page - 1) * RAW_PAGE_SIZE;
+  const { column, ascending } = RAW_ORDER[table];
+  const { data, count, error } = await supabaseAdmin()
+    .from(table)
+    .select("*", { count: "exact" })
+    .order(column, { ascending })
+    .range(start, start + RAW_PAGE_SIZE - 1)
+    .retry(false)
+    .returns<Record<string, unknown>[]>();
+
+  // เลขหน้าเกินจำนวนแถว (PGRST103) = หน้าว่าง ไม่ใช่ข้อผิดพลาด
+  if (error?.code === "PGRST103") return { columns: [], rows: [], total: 0, failed: false };
+  if (error) {
+    console.error(`readRawTable ${table}:`, error.message);
+    return { columns: [], rows: [], total: 0, failed: true };
+  }
+  const rows = data ?? [];
+  return { columns: rows[0] ? Object.keys(rows[0]) : [], rows, total: count ?? rows.length, failed: false };
 }
 
 /* ---------- ตรวจข้อมูลสินค้า (ใช้ทั้งฟอร์มและ import) ---------- */
@@ -214,6 +386,10 @@ export function normalizeProduct(raw: Record<string, unknown>): { product: Produ
   const file_path = str(raw.file_path, 300);
   if (!file_path) return { error: "file_required" };
 
+  // รับเฉพาะรูปที่อัปโหลดเข้า bucket ของร้าน ไม่รับ URL จากที่อื่น
+  const coverRaw = str(raw.cover, 500);
+  const cover = coverRaw.startsWith(imageBaseUrl()) ? coverRaw : null;
+
   const short_th = str(raw.short_th, 300) || str(raw.short_en, 300) || title_th;
   const long_th = str(raw.long_th) || str(raw.long_en) || short_th;
   const author_th = str(raw.author_th || raw.author, 120) || str(raw.author_en, 120) || "VECTOR";
@@ -237,6 +413,7 @@ export function normalizeProduct(raw: Record<string, unknown>): { product: Produ
       license: (licenseRaw as License) || null,
       file_path,
       file_size: str(raw.file_size, 20) || "—",
+      cover,
       published: bool(raw.published, true),
       sort: Number.isFinite(sort) && sort >= 0 ? sort : 0,
       shop_id: str(raw.shop_id, 60) || null,

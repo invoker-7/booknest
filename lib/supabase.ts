@@ -15,6 +15,12 @@ const SUPABASE_TIMEOUT_MS = 2500;
 
 export const EBOOK_BUCKET = process.env.SUPABASE_EBOOK_BUCKET || "ebooks";
 
+/** bucket สาธารณะสำหรับรูปสินค้า (ไฟล์สินค้าที่ขายอยู่ใน EBOOK_BUCKET แบบ private คนละที่กัน) */
+export const IMAGE_BUCKET = "product-images";
+
+/** ต้น URL ของรูปสินค้า — ใช้ตรวจว่า cover ที่ส่งมาเป็นรูปจาก bucket ของร้านจริง */
+export const imageBaseUrl = (): string => `${url}/storage/v1/object/public/${IMAGE_BUCKET}/`;
+
 /** ยังไม่ได้ตั้งค่า env? หน้าเว็บจะขึ้นคำแนะนำแทนการพัง */
 export const isSupabaseConfigured = Boolean(url && secret);
 

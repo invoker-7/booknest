@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useState, type ReactNode } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { useLang } from "@/components/LangProvider";
 import { LangToggle } from "@/components/Shell";
 import { useToast } from "@/components/StoreProvider";
-import { ArrowLeft, Box, Chart, Check, Mark, Receipt, Swap, Users, type IconProps } from "@/components/Icons";
+import { Archive, ArrowLeft, Box, Chart, Check, List, Mark, Receipt, Swap, User, Users, type IconProps } from "@/components/Icons";
 import type { TKey } from "@/lib/i18n";
 
 const NAV: { href: string; key: TKey; Icon: (p: IconProps) => JSX.Element }[] = [
@@ -15,7 +15,10 @@ const NAV: { href: string; key: TKey; Icon: (p: IconProps) => JSX.Element }[] = 
   { href: "/admin/products", key: "admProducts", Icon: Box },
   { href: "/admin/orders", key: "admOrders", Icon: Receipt },
   { href: "/admin/customers", key: "admCustomers", Icon: Users },
+  { href: "/admin/users", key: "admUsers", Icon: User },
+  { href: "/admin/reports", key: "admReports", Icon: Archive },
   { href: "/admin/data", key: "admData", Icon: Swap },
+  { href: "/admin/raw", key: "admRaw", Icon: List },
 ];
 
 const isActive = (pathname: string, href: string) =>
@@ -26,8 +29,16 @@ export default function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname() || "/admin";
   const { t } = useLang();
   const toast = useToast();
-  const { user } = useAuth();
+  const router = useRouter();
+  const { user, signOut } = useAuth();
+  const [leaving, setLeaving] = useState(false);
   const email = user?.email ?? "";
+
+  async function leave() {
+    setLeaving(true);
+    await signOut();
+    router.replace("/");
+  }
 
   return (
     <div className="adm">
@@ -51,6 +62,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
           <span className="mono adm-email" title={email}>{email}</span>
           <LangToggle className="on-dark" />
           <Link href="/" className="adm-back"><ArrowLeft size={16} /> {t("admBackToStore")}</Link>
+          <button type="button" className="adm-back" onClick={leave} disabled={leaving}>{t("logout")}</button>
         </div>
       </aside>
 

@@ -20,7 +20,7 @@ const VERIFIED_SECONDS = 60 * 60 * 24 * 30;
 
 export type OtpError = "otp_invalid" | "otp_expired" | "otp_locked";
 export type OtpSendResult =
-  | { ok: true }
+  | { ok: true; retryIn: number }
   | { ok: false; error: "otp_cooldown"; retryIn: number }
   | { ok: false; error: "otp_send_failed" };
 
@@ -82,18 +82,32 @@ export function clearOtpVerified(): void {
 
 /* ---------- ออกรหัส / ตรวจรหัส ---------- */
 
-/** สร้างรหัสใหม่แล้วส่งอีเมล — ขอซ้ำได้ทุก OTP_RESEND_SECONDS วินาที */
-export async function issueOtp(user: { id: string; email: string; name: string }): Promise<OtpSendResult> {
+/** เข้าสู่ระบบรอบใหม่: ทิ้งรหัสเดิม ให้หน้ากรอกรหัสขอรหัสใหม่เอง */
+export async function discardOtp(userId: string): Promise<void> {
+  const { error } = await supabaseAdmin().from("login_otps").delete().eq("user_id", userId);
+  if (error) console.error("discardOtp:", error.message);
+}
+
+/**
+ * สร้างรหัสใหม่แล้วส่งอีเมล — ขอซ้ำได้ทุก OTP_RESEND_SECONDS วินาที
+ * reuse = true (หน้ากรอกรหัสเรียกเองตอนเปิด): ถ้ายังมีรหัสที่ใช้ได้อยู่จะไม่ส่งซ้ำ เปิดหน้าใหม่กี่ครั้งก็ได้อีเมลฉบับเดียว
+ */
+export async function issueOtp(
+  user: { id: string; email: string; name: string },
+  { reuse = false }: { reuse?: boolean } = {}
+): Promise<OtpSendResult> {
   const db = supabaseAdmin();
   try {
     const { data: last } = await db
       .from("login_otps")
-      .select("sent_at")
+      .select("sent_at, expires_at, attempts")
       .eq("user_id", user.id)
-      .maybeSingle<Pick<OtpRow, "sent_at">>();
+      .maybeSingle<Pick<OtpRow, "sent_at" | "expires_at" | "attempts">>();
 
     if (last) {
       const wait = OTP_RESEND_SECONDS - Math.floor((Date.now() - Date.parse(last.sent_at)) / 1000);
+      const usable = Date.parse(last.expires_at) > Date.now() && last.attempts < OTP_MAX_ATTEMPTS;
+      if (reuse && usable) return { ok: true, retryIn: Math.max(wait, 0) };
       if (wait > 0) return { ok: false, error: "otp_cooldown", retryIn: wait };
     }
 
@@ -108,12 +122,12 @@ export async function issueOtp(user: { id: string; email: string; name: string }
     if (error) throw new Error(error.message);
 
     const mail = await sendOtpEmail({ to: user.email, name: user.name, code, minutes: OTP_TTL_MINUTES });
-    if (mail.status === "sent") return { ok: true };
+    if (mail.status === "sent") return { ok: true, retryIn: OTP_RESEND_SECONDS };
 
     // ยังไม่ได้ตั้ง SMTP: ตอนพัฒนาให้ดูรหัสจาก log ของ server ได้ ส่วน production ถือว่าส่งไม่สำเร็จ
     if (mail.status === "mock" && process.env.NODE_ENV !== "production") {
       console.info(`[otp] ${user.email} -> ${code} (SMTP not set, code shown here for local testing)`);
-      return { ok: true };
+      return { ok: true, retryIn: OTP_RESEND_SECONDS };
     }
 
     // ส่งไม่ถึง: ลบรหัสทิ้งเพื่อให้กดขอใหม่ได้ทันที

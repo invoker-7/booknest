@@ -1,7 +1,7 @@
 import AuthView from "@/components/views/AuthView";
 import OtpView from "@/components/views/OtpView";
 import { getPendingIdentity, isAuthConfigured, isGoogleEnabled, safeNext } from "@/lib/auth";
-import { OTP_LENGTH, OTP_RESEND_SECONDS, OTP_TTL_MINUTES } from "@/lib/otp";
+import { OTP_LENGTH, OTP_TTL_MINUTES } from "@/lib/otp";
 
 export const metadata = { title: "Sign in", robots: { index: false } };
 
@@ -18,16 +18,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   // ผ่าน Google มาแล้วแต่ยังไม่ได้กรอกรหัส -> ขั้นที่สอง
   const pending = await getPendingIdentity();
   if (pending) {
-    return (
-      <OtpView
-        email={pending.email}
-        next={next}
-        length={OTP_LENGTH}
-        minutes={OTP_TTL_MINUTES}
-        resendSeconds={OTP_RESEND_SECONDS}
-        sendFailed={error === "otp_send"}
-      />
-    );
+    return <OtpView email={pending.email} next={next} length={OTP_LENGTH} minutes={OTP_TTL_MINUTES} />;
   }
 
   return (

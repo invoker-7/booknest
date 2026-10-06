@@ -4,7 +4,7 @@ import Link from "next/link";
 import { forwardRef, type ButtonHTMLAttributes, type ComponentProps, type ElementType, type ReactNode } from "react";
 import { useLang } from "./LangProvider";
 import { useStore } from "./StoreProvider";
-import Plate from "./Plate";
+import ProductArt from "./ProductArt";
 import { Arrow, Check, Spinner, Star, Alert, Info } from "./Icons";
 import { money, pick } from "@/lib/format";
 import { discountOf } from "@/lib/catalog";
@@ -21,6 +21,7 @@ export type ProductSummary = Pick<
   short_th?: string;
   short_en?: string;
   creatorName?: string | null;
+  cover?: string | null;
 };
 
 const cx = (...parts: (string | false | null | undefined)[]) => parts.filter(Boolean).join(" ");
@@ -164,7 +165,7 @@ export function ProductRow({ p, index }: { p: ProductSummary; index: number }) {
       <Link href={`/product/${p.id}`} className="prow-link" aria-label={title} />
       <div className="prow-no mono">{String(index + 1).padStart(2, "0")}</div>
       <div className="prow-plate">
-        <Plate category={p.category} title={title} bare />
+        <ProductArt p={p} title={title} bare sizes="(max-width: 760px) 40vw, 200px" />
       </div>
       <div className="prow-main">
         <div className="prow-meta mono">
@@ -193,7 +194,7 @@ export function ProductTile({ p }: { p: ProductSummary }) {
     <article className="ptile">
       <Link href={`/product/${p.id}`} className="ptile-link">
         <div className="ptile-plate">
-          <Plate category={p.category} no={p.productNo} label={t(`cat_${p.category}`)} title={title} />
+          <ProductArt p={p} no={p.productNo} label={t(`cat_${p.category}`)} title={title} sizes="(max-width: 760px) 100vw, 400px" />
         </div>
         <div className="ptile-meta mono">
           <span>{t(`cat_${p.category}`)}</span>

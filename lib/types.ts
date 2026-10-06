@@ -280,6 +280,8 @@ export interface ProductInput {
   license: License | null;
   file_path: string;
   file_size: string;
+  /** URL รูปสินค้าใน bucket สาธารณะ — null = ใช้ภาพแบบร่างตามหมวดหมู่ */
+  cover: string | null;
   published: boolean;
   sort: number;
   shop_id: string | null;
@@ -308,11 +310,50 @@ export interface AdminCustomer {
   spent: number;
 }
 
+/** สมาชิกหนึ่งบัญชีในหน้าจัดการผู้ใช้ */
+export interface AdminUser {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  joined: string | null;
+  /** เป็นผู้ดูแลจาก ADMIN_EMAILS — เปลี่ยนสิทธิ์หรือลบจากหน้าเว็บไม่ได้ */
+  locked: boolean;
+}
+
 export interface DailyPoint {
   /** YYYY-MM-DD (เวลาไทย) */
   day: string;
   sales: number;
   orders: number;
+}
+
+export type ActivityKind = "order_created" | "order_paid" | "order_delivered" | "email_failed" | "member_joined";
+
+/** หนึ่งเหตุการณ์ในบันทึกกิจกรรม (ประกอบจากเวลาที่บันทึกไว้ในคำสั่งซื้อและบัญชีสมาชิก) */
+export interface ActivityEvent {
+  at: string;
+  kind: ActivityKind;
+  /** เลขคำสั่งซื้อ — null สำหรับเหตุการณ์ของสมาชิก */
+  ref: string | null;
+  /** อีเมลของลูกค้าหรือสมาชิก */
+  who: string;
+  amount: number | null;
+}
+
+/** รายงานของช่วง N วันล่าสุด — ตัวเลขเป็นของช่วงนั้น เทียบกับ N วันก่อนหน้า */
+export interface AdminReport {
+  days: number;
+  sales: number;
+  orders: number;
+  customers: number;
+  salesChange: number | null;
+  ordersChange: number | null;
+  customersChange: number | null;
+  daily: DailyPoint[];
+  /** สินค้าขายดีตลอดเวลา (ไม่จำกัดช่วง) */
+  top: AdminStats["top"];
+  activity: ActivityEvent[];
 }
 
 export interface AdminStats {

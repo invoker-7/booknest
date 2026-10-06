@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useLang } from "@/components/LangProvider";
-import Plate, { HeroArt } from "@/components/Plate";
+import { HeroArt } from "@/components/Plate";
+import ProductArt from "@/components/ProductArt";
 import { Arrow } from "@/components/Icons";
 import { SectionHead, TextLink, LinkButton, ProductRow, PreviewBanner, Meta, Price, Rating, Empty } from "@/components/ui";
 import { CATEGORIES, sortProducts, stamp } from "@/lib/catalog";
@@ -99,8 +100,8 @@ export default function HomeView({ products, creatorCount, live }: HomeViewProps
             <section className="feature-band" aria-label={pick(spotlight, "title", lang)}>
               <div className="wrap feature-band-grid">
                 <div className="feature-band-plate">
-                  <Plate
-                    category={spotlight.category}
+                  <ProductArt
+                    p={spotlight}
                     no={spotlight.productNo}
                     label={t(`cat_${spotlight.category}`)}
                     title={pick(spotlight, "title", lang)}

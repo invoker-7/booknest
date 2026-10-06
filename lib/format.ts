@@ -46,6 +46,10 @@ export const isEmail = (v: unknown): boolean =>
 
 /** ไฟล์สินค้าที่หลังบ้านอัปโหลดได้ (ตรวจทั้งฟอร์มและ API) */
 export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+/** รูปสินค้าที่หลังบ้านอัปโหลดได้ (ตรวจทั้งฟอร์มและ API) */
+export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+export const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "webp"];
+
 export const UPLOAD_EXTENSIONS = ["pdf", "zip", "epub", "fig", "docx", "xlsx", "pptx", "png", "jpg", "svg", "mp4", "txt", "md", "json"];
 
 /** 4404019 -> "4.2 MB" */
