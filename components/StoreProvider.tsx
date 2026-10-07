@@ -59,6 +59,7 @@ export function snapshot(p: Cartable): CartItem {
     price: p.price,
     list_price: p.list_price,
     kind: p.kind,
+    cover: p.cover,
     category: p.category,
     version: p.version,
     license: p.license,

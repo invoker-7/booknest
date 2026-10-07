@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useLang } from "@/components/LangProvider";
-import Plate from "@/components/Plate";
+import ProductArt from "@/components/ProductArt";
 import { Lock } from "@/components/Icons";
 import { Button, LinkButton, Steps, Notice, PayNote } from "@/components/ui";
 import { categoryOf } from "@/lib/catalog";
@@ -79,7 +79,7 @@ export default function PayView({ order, book, pay: payOptions }: { order: SafeO
           <h2>{t("orderSummary")}</h2>
           <ul className="co-mini">
             <li>
-              <div className="thumb"><Plate category={categoryOf(book)} title="" bare /></div>
+              <div className="thumb"><ProductArt p={{ cover: book.cover, category: categoryOf(book) }} bare sizes="120px" /></div>
               <div>
                 <span className="mono">{order.order_no}</span>
                 {title}

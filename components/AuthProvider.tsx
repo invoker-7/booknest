@@ -37,6 +37,7 @@ async function syncAccountOrders(): Promise<void> {
       title_th: o.book?.title_th,
       title_en: o.book?.title_en,
       kind: o.book?.kind,
+      cover: o.book?.cover,
       amount: o.amount,
       status: o.status,
       slip: Boolean(o.slip),

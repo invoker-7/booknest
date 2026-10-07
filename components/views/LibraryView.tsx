@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useLang } from "@/components/LangProvider";
 import { useStore } from "@/components/StoreProvider";
-import Plate from "@/components/Plate";
+import ProductArt from "@/components/ProductArt";
 import { Alert, Arrow, Download, Library } from "@/components/Icons";
 import { Button, LinkButton, Empty, StatusTag, Notice, ProductTile } from "@/components/ui";
 import { lookupOrder } from "@/lib/apiClient";
@@ -22,6 +22,7 @@ interface LibraryRow {
   o: LocalOrder;
   title: string;
   category: Category;
+  cover: string | null | undefined;
   mine: string;
   latest: string;
   updated: boolean;
@@ -42,6 +43,7 @@ function remember(o: LookupOrder): void {
     title_th: o.book.title_th,
     title_en: o.book.title_en,
     kind: o.book.kind,
+    cover: o.book.cover,
     amount: o.amount,
     status: o.status,
     slip: Boolean(o.slip),
@@ -131,6 +133,8 @@ export default function LibraryView({ products }: LibraryViewProps) {
     return {
       o, title,
       category: p?.category || categoryOf({ kind: o.kind }),
+      // รูปล่าสุดจากแคตตาล็อกก่อน ถ้าสินค้าถูกถอดออกแล้วใช้รูปที่จำไว้ตอนซื้อ
+      cover: p?.cover ?? o.cover,
       mine, latest,
       updated: Boolean(p) && mine !== latest,
       date: o.purchasedAt || o.savedAt,
@@ -230,7 +234,7 @@ export default function LibraryView({ products }: LibraryViewProps) {
                 <tr key={r.o.orderNo}>
                   <td>
                     <div className="prod">
-                      <div className="thumb"><Plate category={r.category} title="" bare /></div>
+                      <div className="thumb"><ProductArt p={r} bare sizes="120px" /></div>
                       <div>
                         <strong>{r.title}</strong>
                         <span className="mono">{r.o.orderNo}</span>
@@ -258,7 +262,7 @@ export default function LibraryView({ products }: LibraryViewProps) {
             {rows.map((r) => (
               <li className="lib-card" key={r.o.orderNo}>
                 <div className="top">
-                  <div className="thumb"><Plate category={r.category} title="" bare /></div>
+                  <div className="thumb"><ProductArt p={r} bare sizes="120px" /></div>
                   <div>
                     {r.o.status && <StatusTag status={r.o.status} slip={r.o.slip} />}
                     <strong>{r.title}</strong>

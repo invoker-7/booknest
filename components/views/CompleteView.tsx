@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useLang } from "@/components/LangProvider";
 import { useStore } from "@/components/StoreProvider";
-import Plate from "@/components/Plate";
+import ProductArt from "@/components/ProductArt";
 import { Check, Download, Library, Print } from "@/components/Icons";
 import { Button, LinkButton, Steps, Notice, Empty } from "@/components/ui";
 import { categoryOf } from "@/lib/catalog";
@@ -85,7 +85,7 @@ export function CompleteBody({ receipt, canDownload = true, shownEmail }: Comple
       <ul className="dl-list" aria-label={t("products")}>
         {receipt.orders.map((o) => (
           <li className="dl-item" key={o.orderNo}>
-            <div className="thumb"><Plate category={o.category} title="" bare /></div>
+            <div className="thumb"><ProductArt p={o} bare sizes="120px" /></div>
             <div>
               <h2>{pick(o, "title", lang)}</h2>
               <p className="mono">{o.orderNo}{o.version ? ` · V${o.version}` : ""}</p>
@@ -199,6 +199,7 @@ export function SingleOrderComplete({ order, book, localEmail }: SingleOrderComp
       title_th: book.title_th,
       title_en: book.title_en,
       category: categoryOf(book),
+      cover: book.cover,
       version: book.version || "1.0",
       emailStatus: !order.email_sent ? "failed" : mocked ? "mock" : "sent",
     }],

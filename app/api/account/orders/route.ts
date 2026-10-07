@@ -19,7 +19,7 @@ export async function GET() {
   const { data, error } = await supabaseAdmin()
     .from("orders")
     .select(
-      "order_no, status, amount, customer_name, customer_email, created_at, paid_at, book:books(id, title_th, title_en, kind, version)"
+      "order_no, status, amount, customer_name, customer_email, created_at, paid_at, book:books(id, title_th, title_en, kind, version, cover)"
     )
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })

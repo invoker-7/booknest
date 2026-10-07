@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useLang } from "@/components/LangProvider";
 import { useStore } from "@/components/StoreProvider";
 import { useAuth } from "@/components/AuthProvider";
-import Plate from "@/components/Plate";
+import ProductArt from "@/components/ProductArt";
 import { Alert, Arrow, Cart, Check, Info, Lock, Spinner } from "@/components/Icons";
 import { Button, LinkButton, Empty, Steps, Notice, PayNote } from "@/components/ui";
 import { SummaryLines, totalsOf } from "@/components/views/CartView";
@@ -250,7 +250,7 @@ export default function CheckoutView({ live, pay: payOptions }: { live: boolean;
           <ul className="co-mini">
             {shown.map((p) => (
               <li key={p.id}>
-                <div className="thumb"><Plate category={p.category} title="" bare /></div>
+                <div className="thumb"><ProductArt p={p} bare sizes="120px" /></div>
                 <div>
                   <span className="mono">{t(`cat_${p.category}`).toUpperCase()} · V{p.version}</span>
                   {pick(p, "title", lang)}

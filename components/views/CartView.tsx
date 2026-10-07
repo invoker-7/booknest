@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useLang } from "@/components/LangProvider";
 import { useStore } from "@/components/StoreProvider";
-import Plate from "@/components/Plate";
+import ProductArt from "@/components/ProductArt";
 import { Arrow, Cart, Lock } from "@/components/Icons";
 import { Button, LinkButton, Empty, Steps, Price } from "@/components/ui";
 import { money, pick } from "@/lib/format";
@@ -74,7 +74,7 @@ export default function CartView() {
                 return (
                   <li className="cart-item" key={p.id}>
                     <Link href={`/product/${p.id}`} className="thumb" tabIndex={-1} aria-hidden="true">
-                      <Plate category={p.category} title={title} bare />
+                      <ProductArt p={p} title={title} bare sizes="120px" />
                     </Link>
                     <div>
                       <p className="specline">

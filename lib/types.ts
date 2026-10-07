@@ -92,6 +92,7 @@ export interface CartItem {
   price: number;
   list_price: number;
   kind?: string | null;
+  cover?: string | null;
   category: Category;
   version: string;
   license: License;
@@ -175,6 +176,8 @@ export interface LocalOrder {
   amount?: number;
   bookId?: string;
   kind?: string | null;
+  /** URL รูปสินค้า ณ ตอนที่จำคำสั่งซื้อไว้ — ใช้เมื่อสินค้าไม่อยู่ในแคตตาล็อกแล้ว */
+  cover?: string | null;
   version?: string;
   status?: OrderStatus;
   /** ยังไม่ได้จ่าย แต่แนบสลิปแล้ว รอร้านตรวจ */
@@ -203,6 +206,7 @@ export interface ReceiptLine {
   title_th?: string;
   title_en?: string;
   category?: Category;
+  cover?: string | null;
   version?: string;
   amount?: number;
   emailStatus?: EmailStatus | null;
@@ -264,7 +268,7 @@ export interface AccountOrder {
   paid_at?: string | null;
   /** ยังไม่ได้จ่าย แต่แนบสลิปแล้ว รอร้านตรวจ */
   slip?: boolean;
-  book: Pick<BookRow, "id" | "title_th" | "title_en" | "kind" | "version"> | null;
+  book: Pick<BookRow, "id" | "title_th" | "title_en" | "kind" | "version" | "cover"> | null;
 }
 
 /* ---------- หลังบ้าน ---------- */
