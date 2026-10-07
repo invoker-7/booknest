@@ -24,6 +24,8 @@ export const EN: Record<TKey, string> = {
   heroSub: "Templates, systems and tools engineered for real work.",
   heroCta: "Explore products",
   heroCta2: "How VECTOR works",
+  homeStatement: "Digital tools selected because they hold up in real work.",
+  whyStatement: "Every product says what you get, what it works with, and arrives instantly.",
 
   featured: "Featured",
   featuredSub: "Selected from the highest-rated and most recently updated products.",

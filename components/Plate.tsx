@@ -250,29 +250,3 @@ export default function Plate({ category = "guide", no, label, title, bare = fal
     </svg>
   );
 }
-
-/** ภาพประกอบ hero: เส้นทางโคจรและเวกเตอร์ แบบแบบร่างวิศวกรรม */
-export function HeroArt() {
-  return (
-    <svg className="hero-art" viewBox="40 60 580 450" fill="none" aria-hidden="true" preserveAspectRatio="xMidYMid meet">
-      <g stroke="#5D78A6" strokeWidth="1.2">
-        <ellipse cx="330" cy="290" rx="250" ry="110" transform="rotate(-18 330 290)" />
-        <ellipse cx="330" cy="290" rx="170" ry="70" transform="rotate(-18 330 290)" strokeDasharray="4 6" />
-      </g>
-      <circle cx="330" cy="290" r="54" stroke="#C9D4E6" strokeWidth="1.5" />
-      <circle cx="330" cy="290" r="4" fill="#C9D4E6" />
-      <path d="M330 290L548 168" stroke="#FFFFFF" strokeWidth="2" />
-      <path d="M520 166l28 2-12 25" stroke="#FFFFFF" strokeWidth="2" />
-      <circle cx="548" cy="168" r="7" fill="#B3261E" />
-      <path d="M330 290h230M330 290V80" stroke="#5D78A6" strokeDasharray="2 4" />
-      <path d="M392 290a62 62 0 00-8-31" stroke="#C9D4E6" strokeWidth="1.2" />
-      <g fontSize="11" fill="#9FB0CC" letterSpacing=".08em">
-        <text x="404" y="276">θ 29.2°</text>
-        <text x="560" y="160">V₁</text>
-        <text x="342" y="92">Y</text>
-        <text x="566" y="304">X</text>
-        <text x="40" y="496">REF / VX-01 · TRAJECTORY STUDY</text>
-      </g>
-    </svg>
-  );
-}

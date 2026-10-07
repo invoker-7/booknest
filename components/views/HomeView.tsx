@@ -1,14 +1,15 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
+import { useRef } from "react";
 import { useLang } from "@/components/LangProvider";
-import { HeroArt } from "@/components/Plate";
 import ProductArt from "@/components/ProductArt";
-import { Arrow } from "@/components/Icons";
-import { SectionHead, TextLink, LinkButton, ProductRow, PreviewBanner, Meta, Price, Rating, Empty } from "@/components/ui";
+import { Arrow, ArrowLeft } from "@/components/Icons";
+import { SectionHead, TextLink, LinkButton, PreviewBanner, Empty } from "@/components/ui";
 import { CATEGORIES, sortProducts, stamp } from "@/lib/catalog";
 import { ARCHIVE } from "@/lib/archive";
-import { fmtDate, pick } from "@/lib/format";
+import { fmtDate, money, pick } from "@/lib/format";
 import type { Product } from "@/lib/types";
 
 interface HomeViewProps {
@@ -17,18 +18,61 @@ interface HomeViewProps {
   live: boolean;
 }
 
-const PRINCIPLES = [
-  { title: "p1Title", body: "p1Body" },
-  { title: "p2Title", body: "p2Body" },
-  { title: "p3Title", body: "p3Body" },
+// ภาพประกอบหน้าแรกอยู่ใน public/home (สาธารณสมบัติ CC0 — ที่มาอยู่ใน public/home/CREDITS.md)
+const WHY = [
+  { title: "p1Title", body: "p1Body", img: "/home/why-spec.jpg" },
+  { title: "p2Title", body: "p2Body", img: "/home/why-delivery.jpg" },
+  { title: "p3Title", body: "p3Body", img: "/home/why-creators.jpg" },
 ] as const;
+
+const STORY_IMAGES = ["/home/story-1.jpg", "/home/story-2.jpg", "/home/story-3.jpg"];
+
+const SHOWCASE_SIZE = 5;
+
+/** โชว์เคสสินค้าเด่น: เลื่อนด้วยนิ้ว/ล้อเมาส์ได้เอง (scroll-snap) ปุ่มแค่สั่งเลื่อนทีละใบ */
+function Showcase({ items }: { items: Product[] }) {
+  const { t, lang } = useLang();
+  const track = useRef<HTMLDivElement>(null);
+
+  const step = (dir: 1 | -1) => {
+    const el = track.current;
+    if (el) el.scrollBy({ left: dir * el.clientWidth, behavior: "smooth" });
+  };
+
+  return (
+    <div className="showcase">
+      <div className="showcase-track" ref={track}>
+        {items.map((p, i) => {
+          const title = pick(p, "title", lang);
+          return (
+            <article className="slide" key={p.id}>
+              <ProductArt p={p} bare sizes="(max-width: 760px) 100vw, 760px" priority={i === 0} />
+              <div className="slide-overlay">
+                <div className="slide-meta mono">
+                  <span>{t(`cat_${p.category}`)}</span>
+                  <span>{money(p.price, lang)}</span>
+                </div>
+                <h3><Link href={`/product/${p.id}`}>{title}</Link></h3>
+                <p>{pick(p, "short", lang)}</p>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+      {items.length > 1 && (
+        <div className="showcase-nav">
+          <button type="button" onClick={() => step(-1)} aria-label={t("admPrev")}><ArrowLeft size={20} /></button>
+          <button type="button" onClick={() => step(1)} aria-label={t("admNext")}><Arrow size={20} /></button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function HomeView({ products, creatorCount, live }: HomeViewProps) {
   const { t, lang } = useLang();
 
-  const ranked = sortProducts(products, "rating");
-  const spotlight = ranked[0];
-  const featured = products.filter((p) => p.id !== spotlight?.id).slice(0, 4);
+  const showcase = sortProducts(products, "rating").slice(0, SHOWCASE_SIZE);
 
   const rated = products.filter((p) => p.reviews > 0);
   const totalReviews = rated.reduce((s, p) => s + p.reviews, 0);
@@ -44,26 +88,22 @@ export default function HomeView({ products, creatorCount, live }: HomeViewProps
       <PreviewBanner live={live} />
 
       <section className="hero" aria-labelledby="hero-title">
-        <div className="wrap hero-grid">
-          <div className="hero-copy">
-            <div className="hero-label mono">
-              <span>VECTOR</span>
-              <span>CATALOG / {stamp(new Date())}</span>
-            </div>
-            <h1 id="hero-title">
-              {t("heroTitle1")}
-              <span>{t("heroTitle2")}</span>
-            </h1>
-            <p className="hero-sub">{t("heroSub")}</p>
-            <div className="hero-cta">
-              <LinkButton href="/products" variant="light">
-                {t("heroCta")} <Arrow size={18} />
-              </LinkButton>
-              <TextLink href="/about" className="light">{t("heroCta2")}</TextLink>
-            </div>
+        <Image className="hero-img" src="/home/hero.jpg" alt="" fill priority sizes="100vw" />
+        <div className="wrap hero-body">
+          <div className="hero-label mono">
+            <span>VECTOR</span>
+            <span>CATALOG / {stamp(new Date())}</span>
           </div>
-          <div className="hero-art-wrap">
-            <HeroArt />
+          <h1 id="hero-title">
+            {t("heroTitle1")}
+            <span>{t("heroTitle2")}</span>
+          </h1>
+          <p className="hero-sub">{t("heroSub")}</p>
+          <div className="hero-cta">
+            <LinkButton href="/products" variant="light">
+              {t("heroCta")} <Arrow size={18} />
+            </LinkButton>
+            <LinkButton href="/about" variant="outline-light">{t("heroCta2")}</LinkButton>
           </div>
         </div>
         <div className="hero-strip mono">
@@ -82,100 +122,89 @@ export default function HomeView({ products, creatorCount, live }: HomeViewProps
         </div>
       ) : (
         <>
-          <section className="section wrap" aria-labelledby="sec-featured">
-            <SectionHead
-              no="01"
-              label="Featured"
-              id="sec-featured"
-              title={t("featured")}
-              sub={t("featuredSub")}
-              action={<TextLink href="/products">{t("viewAll")}</TextLink>}
-            />
-            <div className="prows">
-              {featured.map((p, i) => <ProductRow key={p.id} p={p} index={i} />)}
+          <section className="section wrap lead" aria-labelledby="sec-featured">
+            <div className="lead-copy">
+              <div className="sec-label mono"><span>Featured</span></div>
+              <h2 id="sec-featured">{t("homeStatement")}</h2>
+              <p>{t("featuredSub")}</p>
+              <div>
+                <LinkButton href="/products">{t("heroCta")} <Arrow size={18} /></LinkButton>
+              </div>
             </div>
+            <Showcase items={showcase} />
           </section>
 
-          {spotlight && (
-            <section className="feature-band" aria-label={pick(spotlight, "title", lang)}>
-              <div className="wrap feature-band-grid">
-                <div className="feature-band-plate">
-                  <ProductArt
-                    p={spotlight}
-                    no={spotlight.productNo}
-                    label={t(`cat_${spotlight.category}`)}
-                    title={pick(spotlight, "title", lang)}
-                  />
-                </div>
-                <div className="feature-band-copy">
-                  <div className="pd-metarow">
-                    <Meta k="Product" v={spotlight.productNo} />
-                    <Meta k="Version" v={spotlight.version} />
-                    <Meta k="Updated" v={stamp(spotlight.updated)} />
-                  </div>
-                  <h2>{pick(spotlight, "title", lang)}</h2>
-                  <p>{pick(spotlight, "long", lang)}</p>
-                  <div className="pd-rating">
-                    <Price p={spotlight} />
-                    <Rating value={spotlight.rating} count={spotlight.reviews} />
-                  </div>
-                  <div><TextLink href={`/product/${spotlight.id}`}>{t("details")}</TextLink></div>
-                </div>
+          <section className="band" aria-labelledby="sec-cats">
+            <div className="wrap">
+              <SectionHead
+                label="Index"
+                id="sec-cats"
+                title={t("byCategory")}
+                action={<TextLink href="/products">{t("viewAll")}</TextLink>}
+              />
+              <div className="tiles">
+                {CATEGORIES.map((c) => (
+                  <Link key={c} href={`/products?cat=${c}`} className="tile">
+                    <Image src={`/home/cat-${c}.jpg`} alt="" fill sizes="(max-width: 760px) 50vw, 320px" />
+                    <span className="tile-count mono">{counts[c]} {t("categoryCount")}</span>
+                    <h3>{t(`cat_${c}`)} <Arrow /></h3>
+                  </Link>
+                ))}
               </div>
-            </section>
-          )}
-
-          <section className="section wrap" aria-labelledby="sec-cats">
-            <SectionHead no="02" label="Index" id="sec-cats" title={t("byCategory")} />
-            <div className="cat-index">
-              {CATEGORIES.map((c, i) => (
-                <Link key={c} href={`/products?cat=${c}`} className="cat-cell">
-                  <div className="mono">
-                    <span>{String(i + 1).padStart(2, "0")}</span>
-                    <span>{counts[c]} {t("categoryCount")}</span>
-                  </div>
-                  <h3>{t(`cat_${c}`)} <Arrow /></h3>
-                </Link>
-              ))}
             </div>
           </section>
         </>
       )}
 
-      <section className="section wrap" aria-labelledby="sec-principles">
-        <SectionHead no="03" label="Principles" id="sec-principles" title={t("principles")} />
-        <div className="principles">
-          {PRINCIPLES.map((item, i) => (
-            <div className="principle" key={item.title}>
-              <span className="mono">P / {String(i + 1).padStart(2, "0")}</span>
-              <h3>{t(item.title)}</h3>
-              <p>{t(item.body)}</p>
-            </div>
+      <section className="section wrap" aria-labelledby="sec-why">
+        <div className="lead-copy wide">
+          <div className="sec-label mono"><span>Principles</span></div>
+          <h2 id="sec-why">{t("whyStatement")}</h2>
+          <div>
+            <LinkButton href="/about" variant="secondary">{t("heroCta2")}</LinkButton>
+          </div>
+        </div>
+        <div className="why">
+          {WHY.map((item, i) => (
+            <article className="why-tile" key={item.title}>
+              <Image src={item.img} alt="" fill sizes="(max-width: 760px) 100vw, 420px" />
+              <div className="why-overlay">
+                <span className="mono">P / {String(i + 1).padStart(2, "0")}</span>
+                <h3>{t(item.title)}</h3>
+                <p>{t(item.body)}</p>
+              </div>
+            </article>
           ))}
         </div>
       </section>
 
-      <section className="section wrap" aria-labelledby="sec-archive">
-        <SectionHead
-          no="04"
-          label="Archive"
-          id="sec-archive"
-          title={t("latestArchive")}
-          action={<TextLink href="/archive">{t("viewAll")}</TextLink>}
-        />
-        <ol className="alist">
-          {articles.map((a, i) => (
-            <li className="aitem" key={a.slug}>
-              <div className="aitem-no">{String(i + 1).padStart(2, "0")}</div>
-              <div className="aitem-type">{t(`type_${a.type}`)}</div>
-              <div>
-                <h3><Link href={`/archive/${a.slug}`}>{pick(a, "title", lang)}</Link></h3>
-                <p>{pick(a, "dek", lang)}</p>
-              </div>
-              <div className="aitem-date">{fmtDate(a.date, lang)}</div>
-            </li>
-          ))}
-        </ol>
+      <section className="band band-end" aria-labelledby="sec-archive">
+        <div className="wrap">
+          <SectionHead
+            label="Archive"
+            id="sec-archive"
+            title={t("latestArchive")}
+            action={<TextLink href="/archive">{t("viewAll")}</TextLink>}
+          />
+          <div className={articles.length === 1 ? "stories solo" : "stories"}>
+            {articles.map((a, i) => (
+              <article className="story" key={a.slug}>
+                <div className="story-img">
+                  <Image src={STORY_IMAGES[i % STORY_IMAGES.length]} alt="" fill sizes="(max-width: 760px) 100vw, 640px" />
+                </div>
+                <div className="story-body">
+                  <div className="story-meta mono">
+                    <span>{fmtDate(a.date, lang)}</span>
+                    <span>{t(`type_${a.type}`)}</span>
+                  </div>
+                  <h3><Link href={`/archive/${a.slug}`}>{pick(a, "title", lang)}</Link></h3>
+                  <p>{pick(a, "dek", lang)}</p>
+                  <span className="story-more" aria-hidden="true">{t("readMore")} <Arrow size={16} /></span>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
       </section>
     </>
   );

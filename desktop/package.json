@@ -2,7 +2,7 @@
   "name": "vector-desktop",
   "version": "1.0.0",
   "private": true,
-  "description": "VECTOR desktop app — opens the deployed store in its own window",
+  "description": "VECTOR desktop app — admin console of the deployed store in its own window",
   "author": "VECTOR",
   "license": "MIT",
   "main": "main.js",
@@ -18,9 +18,9 @@
   "build": {
     "appId": "app.vector.desktop",
     "productName": "VECTOR",
-    "files": ["main.js", "offline.html", "config.json"],
+    "files": ["main.js", "offline.html", "denied.html", "config.json"],
     "directories": { "output": "dist" },
-    "mac": { "category": "public.app-category.shopping", "target": "dmg" },
+    "mac": { "category": "public.app-category.business", "target": "dmg" },
     "win": { "target": "nsis" },
     "linux": { "target": "AppImage", "category": "Office" }
   }

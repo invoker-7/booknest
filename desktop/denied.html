@@ -10,6 +10,7 @@
     main { max-width: 420px; padding: 32px; }
     .mark { font-weight: 700; letter-spacing: .22em; font-size: 18px; padding-bottom: 16px; margin-bottom: 24px; border-bottom: 1px solid #17191C; }
     h1 { font-size: 26px; font-weight: 500; margin: 0 0 10px; }
+    strong { color: #17191C; font-weight: 600; word-break: break-all; }
     p { color: #5C6066; line-height: 1.7; margin: 0 0 24px; }
     button { background: #1F3A68; color: #fff; border: 0; padding: 14px 26px; font: inherit; font-weight: 600; cursor: pointer; }
     button:hover { background: #172C50; }
@@ -18,15 +19,17 @@
 <body>
   <main>
     <div class="mark">VECTOR</div>
-    <h1>เชื่อมต่อหลังบ้านไม่ได้</h1>
-    <p>ตรวจการเชื่อมต่ออินเทอร์เน็ตแล้วลองอีกครั้ง<br>Can't reach the admin console. Check your connection and try again.</p>
-    <button type="button" id="retry">ลองอีกครั้ง / Retry</button>
+    <h1>บัญชีนี้ไม่มีสิทธิ์ผู้ดูแล</h1>
+    <p><strong id="email"></strong>แอปนี้ใช้ได้เฉพาะผู้ดูแลร้าน ระบบออกจากระบบให้แล้ว<br>This app is for store admins only. You have been signed out.</p>
+    <button type="button" id="retry">ใช้บัญชีอื่น / Use another account</button>
   </main>
   <script>
     document.getElementById("retry").addEventListener("click", function () {
       var to = new URLSearchParams(location.search).get("to");
       if (to) location.href = to;
     });
+    var email = new URLSearchParams(location.search).get("email");
+    if (email) document.getElementById("email").textContent = email + " — ";
   </script>
 </body>
 </html>
