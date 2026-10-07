@@ -76,6 +76,15 @@ export async function createSlipUploads(orderNos: string[], ext: string): Promis
   );
 }
 
+/** ลบสลิปทั้งหมดของคำสั่งซื้อ (เรียกตอนลบคำสั่งซื้อ) — ไม่มีสลิปก็ไม่ถือว่าผิดพลาด */
+export async function removeSlips(orderNo: string): Promise<void> {
+  const bucket = supabaseAdmin().storage.from(SLIP_BUCKET);
+  const { data } = await bucket.list(orderNo, { limit: 100 });
+  if (!data?.length) return;
+  const { error } = await bucket.remove(data.map((file) => `${orderNo}/${file.name}`));
+  if (error) console.error("removeSlips:", error.message);
+}
+
 /** ลิงก์ชั่วคราว (5 นาที) สำหรับให้เจ้าของร้านเปิดดูสลิป */
 export async function slipViewUrl(orderNo: string): Promise<string | null> {
   const path = await findSlip(orderNo);

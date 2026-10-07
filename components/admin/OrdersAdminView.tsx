@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useLang } from "@/components/LangProvider";
 import { useStore } from "@/components/StoreProvider";
 import { AdminHead, useAdminTodo } from "@/components/admin/AdminShell";
-import { Check, Download } from "@/components/Icons";
+import { Check, Download, Search, Trash } from "@/components/Icons";
 import { Button, Empty, Notice, StatusTag } from "@/components/ui";
 import { sendJson } from "@/lib/apiClient";
 import { fmtDate, fmtTime, money } from "@/lib/format";
@@ -26,9 +26,10 @@ interface OrdersAdminViewProps {
   page: number;
   pageSize: number;
   filter: OrderFilter;
+  search: string;
 }
 
-export default function OrdersAdminView({ orders, total, page, pageSize, filter }: OrdersAdminViewProps) {
+export default function OrdersAdminView({ orders, total, page, pageSize, filter, search }: OrdersAdminViewProps) {
   const { t, lang } = useLang();
   const pages = Math.max(1, Math.ceil(total / pageSize));
   const { notify } = useStore();
@@ -38,7 +39,7 @@ export default function OrdersAdminView({ orders, total, page, pageSize, filter 
   const { todo, refreshTodo } = useAdminTodo();
   const counts: Partial<Record<OrderFilter, number>> = todo ? { review: todo.review, unpaid: todo.unpaid, undelivered: todo.undelivered } : {};
   const href = (f: OrderFilter, n = 1) => {
-    const query = [f !== "all" && `filter=${f}`, n > 1 && `page=${n}`].filter(Boolean).join("&");
+    const query = [f !== "all" && `filter=${f}`, search && `q=${encodeURIComponent(search)}`, n > 1 && `page=${n}`].filter(Boolean).join("&");
     return `/admin/orders${query ? `?${query}` : ""}`;
   };
 
@@ -75,6 +76,24 @@ export default function OrdersAdminView({ orders, total, page, pageSize, filter 
     }
   }
 
+  /** ลบถาวร: ผู้ซื้อดาวน์โหลดจากคำสั่งซื้อนี้ไม่ได้อีก และยอดขายไม่นับรายการนี้ */
+  async function remove(o: AdminOrder) {
+    const ask = t(o.status === "PENDING" ? "admDeleteOrderAsk" : "admDeleteOrderPaidAsk");
+    if (!window.confirm(`${ask}\n\n${o.order_no} · ${money(o.amount, lang)}\n${o.customer_email}`)) return;
+    setBusy(`del:${o.order_no}`);
+    setError(false);
+    try {
+      await sendJson(`/api/admin/orders/${encodeURIComponent(o.order_no)}`, undefined, "DELETE");
+      notify(t("admOrderDeleted"));
+      refreshTodo();
+      router.refresh();
+    } catch {
+      setError(true);
+    } finally {
+      setBusy("");
+    }
+  }
+
   return (
     <>
       <AdminHead
@@ -96,10 +115,22 @@ export default function OrdersAdminView({ orders, total, page, pageSize, filter 
         ))}
       </nav>
 
+      {/* ฟอร์ม GET ธรรมดา: ค้นหาเป็นส่วนหนึ่งของ URL จึงแชร์ลิงก์และกดย้อนกลับได้ */}
+      <form className="toolbar" action="/admin/orders" role="search">
+        {filter !== "all" && <input type="hidden" name="filter" value={filter} />}
+        <label className="search">
+          <Search size={18} />
+          <span className="sr-only">{t("navSearch")}</span>
+          <input type="search" name="q" defaultValue={search} placeholder={t("admSearchOrders")} />
+        </label>
+        <Button type="submit" variant="secondary" size="small">{t("navSearch")}</Button>
+        {search && <Link href={`/admin/orders${filter === "all" ? "" : `?filter=${filter}`}`} className="linkbtn">{t("admClearSearch")}</Link>}
+      </form>
+
       {error && <div className="adm-gap"><Notice tone="error">{t("genericError")}</Notice></div>}
 
       {orders.length === 0 ? (
-        <Empty title={t(filter === "all" ? "admNoOrders" : "admNoOrdersFiltered")} />
+        <Empty title={t(search ? "admNoOrdersFound" : filter === "all" ? "admNoOrders" : "admNoOrdersFiltered")} />
       ) : (
         <div className="adm-card flush tscroll">
           <table className="ltable">
@@ -130,25 +161,34 @@ export default function OrdersAdminView({ orders, total, page, pageSize, filter 
                   </td>
                   <td className="num">{money(o.amount, lang)}</td>
                   <td>
-                    {o.status === "PAID" && (
-                      <div className="acts">
+                    <div className="acts">
+                      {o.status === "PAID" && (
                         <Button size="small" onClick={() => resend(o)} loading={busy === o.order_no} loadingText={t("loading")}>
                           {t("admResend")}
                         </Button>
-                      </div>
-                    )}
-                    {o.status === "PENDING" && (
-                      <div className="acts">
-                        {o.slip && (
-                          <a className="btn ghost small" href={`/api/admin/orders/${encodeURIComponent(o.order_no)}/slip`} target="_blank" rel="noreferrer">
-                            {t("admViewSlip")}
-                          </a>
-                        )}
-                        <Button variant={o.slip ? "success" : "secondary"} size="small" onClick={() => confirm(o)} loading={busy === o.order_no} loadingText={t("loading")}>
-                          <Check size={16} /> {t("admConfirmPaid")}
-                        </Button>
-                      </div>
-                    )}
+                      )}
+                      {o.status === "PENDING" && (
+                        <>
+                          {o.slip && (
+                            <a className="btn ghost small" href={`/api/admin/orders/${encodeURIComponent(o.order_no)}/slip`} target="_blank" rel="noreferrer">
+                              {t("admViewSlip")}
+                            </a>
+                          )}
+                          <Button variant={o.slip ? "success" : "secondary"} size="small" onClick={() => confirm(o)} loading={busy === o.order_no} loadingText={t("loading")}>
+                            <Check size={16} /> {t("admConfirmPaid")}
+                          </Button>
+                        </>
+                      )}
+                      <Button
+                        variant="danger"
+                        size="small"
+                        onClick={() => remove(o)}
+                        loading={busy === `del:${o.order_no}`}
+                        aria-label={`${t("admDelete")}: ${o.order_no}`}
+                      >
+                        <Trash size={16} />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -1,7 +1,8 @@
 // VECTOR desktop — หน้าต่างเดียวที่เปิดหลังบ้าน (/admin) ของเว็บร้านที่ deploy แล้ว (ไม่มีโค้ดร้านซ้ำอยู่ในแอป)
 // แอปนี้สำหรับผู้ดูแลเท่านั้น: หน้าร้านไม่เปิดในแอป และบัญชีที่ไม่ใช่ admin เข้าไม่ได้
 // ที่อยู่เว็บตั้งใน config.json หรือ env VECTOR_URL ตอนพัฒนา
-const { app, BrowserWindow, Menu, shell } = require("electron");
+const { app, BrowserWindow, Menu, screen, shell } = require("electron");
+const fs = require("node:fs");
 const path = require("node:path");
 
 const SITE_URL = (process.env.VECTOR_URL || require("./config.json").url).replace(/\/+$/, "");
@@ -50,6 +51,42 @@ function openOutside(target) {
 }
 
 let win = null;
+
+/* ---------- ขนาดและตำแหน่งหน้าต่าง: จำไว้ข้ามการเปิดแอป ---------- */
+
+const DEFAULT_BOUNDS = { width: 1360, height: 880 };
+const stateFile = () => path.join(app.getPath("userData"), "window.json");
+
+function loadWindowState() {
+  try {
+    const saved = JSON.parse(fs.readFileSync(stateFile(), "utf8"));
+    const { x, y, width, height } = saved;
+    if (![x, y, width, height].every(Number.isFinite)) return DEFAULT_BOUNDS;
+    // จอที่เคยใช้อาจถูกถอดไปแล้ว: ใช้ตำแหน่งเดิมก็ต่อเมื่อยังอยู่ในจอใดจอหนึ่ง
+    const visible = screen.getAllDisplays().some(({ workArea: a }) =>
+      x < a.x + a.width - 80 && x + width > a.x + 80 && y >= a.y - 10 && y < a.y + a.height - 80
+    );
+    return { ...(visible ? { x, y } : {}), width, height, maximized: Boolean(saved.maximized) };
+  } catch {
+    return DEFAULT_BOUNDS;
+  }
+}
+
+function saveWindowState() {
+  if (!win || win.isMinimized() || win.isFullScreen()) return;
+  const state = { ...win.getNormalBounds(), maximized: win.isMaximized() };
+  try {
+    fs.writeFileSync(stateFile(), JSON.stringify(state));
+  } catch {
+    // จำไม่ได้ก็แค่เปิดครั้งหน้าด้วยขนาดเริ่มต้น
+  }
+}
+
+/** หลังบ้านใส่จำนวนงานรอจัดการไว้หน้าชื่อหน้า "(3) Orders · VECTOR Admin" — เอามาขึ้นเป็นตัวเลขบนไอคอนแอป */
+function showPendingCount(title) {
+  const count = Number(/^\((\d+)\)/.exec(title)?.[1] ?? 0);
+  app.setBadgeCount(count); // macOS (Dock) และ Linux บางระบบ; Windows ไม่รองรับและไม่ทำอะไร
+}
 
 /** ผู้ใช้ของ session ในแอป — null เมื่อไม่ได้ล็อกอินหรือถามเว็บไม่ได้ */
 async function currentUser(session) {
@@ -103,18 +140,23 @@ async function leftAdminArea(target) {
 }
 
 function createWindow() {
+  const { maximized, ...bounds } = loadWindowState();
   win = new BrowserWindow({
-    width: 1280,
-    height: 860,
+    ...bounds,
     minWidth: 380,
     minHeight: 600,
     title: "VECTOR Admin",
-    backgroundColor: "#F4F3EF",
+    backgroundColor: "#13243F", // สีแถบเมนูของหลังบ้าน — ระหว่างรอหน้าแรกไม่มีแสงขาววาบ
+    show: false,
     autoHideMenuBar: true,
-    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
+    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: false },
   });
+  if (maximized) win.maximize();
+  win.once("ready-to-show", () => win?.show());
+  win.on("close", saveWindowState);
 
   const { webContents } = win;
+  webContents.on("page-title-updated", (_event, title) => showPendingCount(title));
 
   // ลิงก์ที่ขอเปิดหน้าต่างใหม่: ของหลังบ้านให้เปิดในหน้าต่างเดิม ที่เหลือส่งให้เบราว์เซอร์ของเครื่อง
   webContents.setWindowOpenHandler(({ url }) => {
@@ -151,28 +193,65 @@ function createWindow() {
 
   win.on("closed", () => {
     win = null;
+    app.setBadgeCount(0);
   });
 
   void win.loadURL(ADMIN_URL);
 }
 
+// เมนู "ไปที่": ทางลัดไปแต่ละส่วนของหลังบ้าน (ลำดับเดียวกับแถบเมนูด้านซ้ายของเว็บ)
+const SECTIONS = [
+  ["แดชบอร์ด", ""],
+  ["สินค้า", "/products"],
+  ["คำสั่งซื้อ", "/orders"],
+  ["ลูกค้า", "/customers"],
+  ["ผู้ใช้", "/users"],
+  ["รายงาน", "/reports"],
+  ["Import / Export", "/data"],
+  ["ข้อมูลดิบ", "/raw"],
+];
+
 function buildMenu() {
-  const nav = (fn) => () => win && fn(win.webContents);
+  const nav = (fn) => () => {
+    if (!win) createWindow();
+    else fn(win.webContents);
+  };
+  const go = (pathname) => nav((wc) => void wc.loadURL(`${ADMIN_URL}${pathname}`).catch(() => {}));
+
   Menu.setApplicationMenu(
     Menu.buildFromTemplate([
       ...(process.platform === "darwin" ? [{ role: "appMenu" }] : []),
-      { role: "editMenu" },
       {
-        label: "Go",
+        label: "ไฟล์",
         submenu: [
-          { label: "Home", accelerator: "CmdOrCtrl+Shift+H", click: nav((wc) => wc.loadURL(ADMIN_URL)) },
-          { label: "Back", accelerator: "CmdOrCtrl+[", click: nav((wc) => wc.navigationHistory.canGoBack() && wc.navigationHistory.goBack()) },
-          { label: "Forward", accelerator: "CmdOrCtrl+]", click: nav((wc) => wc.navigationHistory.canGoForward() && wc.navigationHistory.goForward()) },
+          { label: "เพิ่มสินค้าใหม่", accelerator: "CmdOrCtrl+N", click: go("/products/new") },
           { type: "separator" },
-          { role: "reload" },
+          { label: "เปิดหน้าร้านในเบราว์เซอร์", accelerator: "CmdOrCtrl+Shift+O", click: () => openOutside(SITE_URL) },
+          { type: "separator" },
+          { role: process.platform === "darwin" ? "close" : "quit" },
         ],
       },
-      { role: "viewMenu" },
+      { role: "editMenu" },
+      {
+        label: "ไปที่",
+        submenu: [
+          ...SECTIONS.map(([label, pathname], i) => ({ label, accelerator: `CmdOrCtrl+${i + 1}`, click: go(pathname) })),
+          { type: "separator" },
+          { label: "ย้อนกลับ", accelerator: "CmdOrCtrl+[", click: nav((wc) => wc.navigationHistory.canGoBack() && wc.navigationHistory.goBack()) },
+          { label: "ไปข้างหน้า", accelerator: "CmdOrCtrl+]", click: nav((wc) => wc.navigationHistory.canGoForward() && wc.navigationHistory.goForward()) },
+          { label: "โหลดหน้านี้ใหม่", accelerator: "CmdOrCtrl+R", click: nav((wc) => wc.reload()) },
+        ],
+      },
+      {
+        label: "มุมมอง",
+        submenu: [
+          { role: "resetZoom" },
+          { role: "zoomIn" },
+          { role: "zoomOut" },
+          { type: "separator" },
+          { role: "togglefullscreen" },
+        ],
+      },
       { role: "windowMenu" },
     ])
   );
@@ -188,6 +267,11 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   app.whenReady().then(() => {
+    app.setAboutPanelOptions({
+      applicationName: "VECTOR Admin",
+      applicationVersion: app.getVersion(),
+      copyright: "หลังบ้านสำหรับผู้ดูแลร้าน VECTOR",
+    });
     buildMenu();
     createWindow();
     app.on("activate", () => {

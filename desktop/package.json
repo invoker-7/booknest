@@ -1,8 +1,8 @@
 {
   "name": "vector-desktop",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
-  "description": "VECTOR desktop app — admin console of the deployed store in its own window",
+  "description": "VECTOR Admin — desktop back office for the store owner (opens /admin of the deployed store)",
   "author": "VECTOR",
   "license": "MIT",
   "main": "main.js",
@@ -17,11 +17,31 @@
   },
   "build": {
     "appId": "app.vector.desktop",
-    "productName": "VECTOR",
-    "files": ["main.js", "offline.html", "denied.html", "config.json"],
-    "directories": { "output": "dist" },
-    "mac": { "category": "public.app-category.business", "target": "dmg" },
-    "win": { "target": "nsis" },
-    "linux": { "target": "AppImage", "category": "Office" }
+    "productName": "VECTOR Admin",
+    "files": [
+      "main.js",
+      "offline.html",
+      "denied.html",
+      "config.json"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "mac": {
+      "category": "public.app-category.business",
+      "target": "dmg",
+      "icon": "build/icon.png"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.png"
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "Office",
+      "icon": "build/icon.png"
+    },
+    "artifactName": "VECTOR-Admin-${version}-${arch}.${ext}"
   }
 }

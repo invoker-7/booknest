@@ -1,6 +1,6 @@
 import "server-only";
 import { revalidatePath } from "next/cache";
-import { slipOrderNos } from "@/lib/slips";
+import { removeSlips, slipOrderNos } from "@/lib/slips";
 import { imageBaseUrl, supabaseAdmin } from "@/lib/supabase";
 import { resetCatalogCache } from "@/lib/catalogServer";
 import { categoryOf } from "@/lib/catalog";
@@ -213,7 +213,10 @@ export async function loadTodo(): Promise<AdminTodo> {
   return { review, unpaid: pending - review, undelivered };
 }
 
-export async function listOrders(page = 1, filter: OrderFilter = "all"): Promise<{ orders: AdminOrder[]; total: number }> {
+/** คำค้นจากช่องค้นหา -> ตัดอักขระที่มีความหมายใน filter ของ PostgREST ออก (กันแทรกเงื่อนไขเอง) */
+const searchTerm = (value: string): string => value.replace(/[,()%*\\"']/g, " ").trim().slice(0, 80);
+
+export async function listOrders(page = 1, filter: OrderFilter = "all", search = ""): Promise<{ orders: AdminOrder[]; total: number }> {
   const from = (Math.max(page, 1) - 1) * ORDER_PAGE_SIZE;
   // รายชื่อคำสั่งซื้อที่มีสลิป: คำขอเดียว ใช้ทั้งกรองและติดป้ายในตาราง
   const withSlip = new Set(await slipOrderNos());
@@ -230,6 +233,9 @@ export async function listOrders(page = 1, filter: OrderFilter = "all"): Promise
     }
   }
 
+  const term = searchTerm(search);
+  if (term) query = query.or(`order_no.ilike.%${term}%,customer_email.ilike.%${term}%,customer_name.ilike.%${term}%`);
+
   const { data, error, count } = await query
     .order("created_at", { ascending: false })
     .range(from, from + ORDER_PAGE_SIZE - 1)
@@ -238,6 +244,18 @@ export async function listOrders(page = 1, filter: OrderFilter = "all"): Promise
   if (error) throw new Error(`orders: ${error.message}`);
   const orders = (data ?? []).map(toAdminOrder);
   return { orders: orders.map((o) => ({ ...o, slip: o.status === "PENDING" && withSlip.has(o.order_no) })), total: count ?? 0 };
+}
+
+/** ลบคำสั่งซื้อถาวร พร้อมสลิปที่แนบไว้ */
+export async function removeOrder(orderNo: string): Promise<"deleted" | "not_found" | "failed"> {
+  const { data, error } = await supabaseAdmin().from("orders").delete().eq("order_no", orderNo).select("order_no");
+  if (error) {
+    console.error("removeOrder:", error.message);
+    return "failed";
+  }
+  if (!data?.length) return "not_found";
+  await removeSlips(orderNo);
+  return "deleted";
 }
 
 /** คำสั่งซื้อทั้งหมดสำหรับ export (ดึงทีละหน้าจนครบ) */
