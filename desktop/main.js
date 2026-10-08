@@ -205,6 +205,8 @@ const SECTIONS = [
   ["สินค้า", "/products"],
   ["คำสั่งซื้อ", "/orders"],
   ["บทความ", "/articles"],
+  ["รีวิว", "/reviews"],
+  ["ครีเอเตอร์", "/shops"],
   ["ลูกค้า", "/customers"],
   ["ผู้ใช้", "/users"],
   ["รายงาน", "/reports"],
@@ -236,7 +238,7 @@ function buildMenu() {
       {
         label: "ไปที่",
         submenu: [
-          ...SECTIONS.map(([label, pathname], i) => ({ label, accelerator: `CmdOrCtrl+${i + 1}`, click: go(pathname) })),
+          ...SECTIONS.map(([label, pathname], i) => ({ label, ...(i < 9 ? { accelerator: `CmdOrCtrl+${i + 1}` } : {}), click: go(pathname) })),
           { type: "separator" },
           { label: "ย้อนกลับ", accelerator: "CmdOrCtrl+[", click: nav((wc) => wc.navigationHistory.canGoBack() && wc.navigationHistory.goBack()) },
           { label: "ไปข้างหน้า", accelerator: "CmdOrCtrl+]", click: nav((wc) => wc.navigationHistory.canGoForward() && wc.navigationHistory.goForward()) },

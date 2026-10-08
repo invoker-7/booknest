@@ -16,6 +16,8 @@ const NAV: { href: string; key: TKey; Icon: (p: IconProps) => JSX.Element }[] = 
   { href: "/admin/products", key: "admProducts", Icon: Box },
   { href: "/admin/orders", key: "admOrders", Icon: Receipt },
   { href: "/admin/articles", key: "admArticles", Icon: Mail },
+  { href: "/admin/reviews", key: "admReviews", Icon: Check },
+  { href: "/admin/shops", key: "admShops", Icon: Mark },
   { href: "/admin/customers", key: "admCustomers", Icon: Users },
   { href: "/admin/users", key: "admUsers", Icon: User },
   { href: "/admin/reports", key: "admReports", Icon: Archive },

@@ -233,6 +233,57 @@ export async function listShops(): Promise<ShopRef[]> {
   return data ?? [];
 }
 
+/** ร้าน/ครีเอเตอร์หนึ่งรายในหลังบ้าน พร้อมจำนวนสินค้า */
+export interface AdminShop {
+  id: string;
+  name: string;
+  bio_th: string;
+  bio_en: string;
+  products: number;
+}
+
+/** ร้านทั้งหมดพร้อมจำนวนสินค้าของแต่ละร้าน */
+export async function listShopsFull(): Promise<AdminShop[]> {
+  const db = supabaseAdmin();
+  const [shops, books] = await Promise.all([
+    db.from("shops").select("id, name, bio_th, bio_en").order("name").retry(false).returns<Omit<AdminShop, "products">[]>(),
+    db.from("books").select("shop_id").not("shop_id", "is", null).retry(false).returns<{ shop_id: string }[]>(),
+  ]);
+  if (shops.error) throw new Error(`shops: ${shops.error.message}`);
+  const counts = new Map<string, number>();
+  for (const b of books.data ?? []) counts.set(b.shop_id, (counts.get(b.shop_id) ?? 0) + 1);
+  return (shops.data ?? []).map((shop) => ({ ...shop, bio_th: shop.bio_th || "", bio_en: shop.bio_en || "", products: counts.get(shop.id) ?? 0 }));
+}
+
+export type ShopErrorCode = "name_required" | "id_required";
+
+/** ตรวจและจัดรูปข้อมูลร้านจากฟอร์มหลังบ้าน */
+export function normalizeShop(raw: Record<string, unknown>): { shop: Omit<AdminShop, "products"> } | { error: ShopErrorCode } {
+  const name = String(raw.name ?? "").trim().slice(0, 120);
+  if (!name) return { error: "name_required" };
+  const id = slugify(String(raw.id ?? "").trim() || name);
+  if (!id) return { error: "id_required" };
+  return {
+    shop: { id, name, bio_th: String(raw.bio_th ?? "").trim().slice(0, 600), bio_en: String(raw.bio_en ?? "").trim().slice(0, 600) },
+  };
+}
+
+export async function saveShop(shop: Omit<AdminShop, "products">): Promise<boolean> {
+  const { error } = await supabaseAdmin().from("shops").upsert(shop, { onConflict: "id" });
+  if (error) console.error("saveShop:", error.message);
+  return !error;
+}
+
+/** ลบร้าน — ร้านที่ยังมีสินค้าลบไม่ได้ (ต้องย้ายหรือลบสินค้าก่อน) */
+export async function removeShop(id: string): Promise<"deleted" | "has_products" | "not_found" | "failed"> {
+  const db = supabaseAdmin();
+  const { count } = await db.from("books").select("id", { count: "exact", head: true }).eq("shop_id", id);
+  if ((count ?? 0) > 0) return "has_products";
+  const { data, error } = await db.from("shops").delete().eq("id", id).select("id");
+  if (error) return "failed";
+  return data?.length ? "deleted" : "not_found";
+}
+
 /** งานที่รอผู้ดูแลจัดการ (สองคำขอ: รายชื่อคำสั่งซื้อที่มีสลิป + นับสถานะ) */
 export async function loadTodo(): Promise<AdminTodo> {
   const db = supabaseAdmin();

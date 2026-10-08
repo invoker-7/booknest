@@ -92,3 +92,21 @@ export async function removeReview(id: string, user: SessionUser): Promise<strin
   if (error) console.error("removeReview:", error.message);
   return data?.[0]?.book_id ?? null;
 }
+
+/** รีวิวหนึ่งรายการในหลังบ้าน พร้อมชื่อสินค้า */
+export interface AdminReview extends Review {
+  title: string;
+}
+
+/** รีวิวทั้งหมดของร้าน ใหม่สุดก่อน (หลังบ้าน — ผู้เรียกต้องตรวจสิทธิ์ admin ก่อน) */
+export async function listAllReviews(limit = 500): Promise<AdminReview[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("reviews")
+    .select(`${COLUMNS}, book:books(title_th)`)
+    .order("created_at", { ascending: false })
+    .limit(limit)
+    .retry(false)
+    .returns<(Review & { book: { title_th: string } | null })[]>();
+  if (error) throw new Error(`reviews: ${error.message}`);
+  return (data ?? []).map(({ book, ...review }) => ({ ...review, title: book?.title_th || review.book_id }));
+}
