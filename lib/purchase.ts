@@ -138,6 +138,11 @@ export async function purchase(
         true
       );
       if (checkout.mode === "free") return receipt;
+      if (checkout.mode === "stripe") {
+        // หน้าชำระเงินของ Stripe: จ่ายเสร็จ Stripe พากลับมาที่ /pay/return ซึ่งยืนยันและส่งไฟล์เอง
+        window.location.assign(checkout.url);
+        return new Promise<Receipt>(() => {});
+      }
       window.location.assign(`/pay-qr?orders=${encodeURIComponent(checkout.orderNos.join(","))}&receipt=1`);
       return new Promise<Receipt>(() => {}); // กำลังออกจากหน้านี้ไปหน้า QR
     }

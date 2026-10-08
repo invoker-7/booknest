@@ -191,8 +191,8 @@ export interface LocalOrder {
   account?: boolean;
 }
 
-/** วิธีชำระเงิน: QR พร้อมเพย์ (ร้านยืนยันรับเงินเอง) หรือแบบจำลองตอนทดสอบในเครื่อง */
-export type PayMethod = "promptpay" | "mock";
+/** วิธีชำระเงิน: Stripe (ยืนยันอัตโนมัติ), QR พร้อมเพย์ของร้าน (แนบสลิป) หรือแบบจำลองตอนทดสอบในเครื่อง */
+export type PayMethod = "stripe" | "promptpay" | "mock";
 
 /** วิธีชำระเงินที่ร้านใช้อยู่ ส่งให้หน้าเว็บแสดง */
 export interface PayOptions {
@@ -200,6 +200,8 @@ export interface PayOptions {
   method: PayMethod | null;
   /** เบอร์พร้อมเพย์ของร้านแบบปิดบางส่วน */
   promptPayId: string;
+  /** true = ผู้ให้บริการชำระเงินอยู่ในโหมดทดสอบ (ไม่มีการตัดเงินจริง) */
+  test?: boolean;
 }
 
 export interface ReceiptLine {

@@ -47,6 +47,7 @@ export const createOrder = (input: CreateOrderInput) =>
   postJson<CreateOrderResult>("/api/orders", input);
 
 export type CheckoutStart =
+  | { mode: "stripe"; url: string } // พาไปหน้าชำระเงินของ Stripe (ยืนยันอัตโนมัติ)
   | { mode: "promptpay"; orderNos: string[] } // แสดง QR พร้อมเพย์ที่ /pay-qr
   | { mode: "free" } // สินค้าแจกฟรี จัดส่งแล้ว
   | { mode: "mock" }; // ทดสอบในเครื่องโดยยังไม่ได้ตั้งพร้อมเพย์ ใช้แบบจำลอง

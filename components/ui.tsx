@@ -281,11 +281,20 @@ export function Notice({ tone = "info", title, children }: NoticeProps) {
   );
 }
 
-/** กล่องบอกวิธีชำระเงินของร้าน: QR พร้อมเพย์ หรือโหมดทดสอบในเครื่อง — ไม่แสดงเมื่อร้านยังไม่เปิดรับชำระเงิน */
+/** กล่องบอกวิธีชำระเงินของร้าน: Stripe, QR พร้อมเพย์ หรือโหมดทดสอบในเครื่อง — ไม่แสดงเมื่อร้านยังไม่เปิดรับชำระเงิน */
 export function PayNote({ pay }: { pay: PayOptions }) {
   const { t } = useLang();
   if (!pay.method) return null;
   const mock = pay.method === "mock";
+  if (pay.method === "stripe") {
+    return (
+      <div className="paydemo">
+        <span className="tag blue">CARD · PROMPTPAY</span>
+        {pay.test && <span className="tag amber">TEST MODE</span>}
+        <p>{t(pay.test ? "stripeTestBody" : "stripeBody")}</p>
+      </div>
+    );
+  }
   return (
     <div className="paydemo">
       <span className={`tag ${mock ? "amber" : "blue"}`}>{mock ? t("demoTag") : "PROMPTPAY"}</span>

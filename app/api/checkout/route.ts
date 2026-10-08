@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { normalizeOrderNo, readJsonBody } from "@/lib/api";
+import { cartNoOf } from "@/lib/format";
 import { fulfillOrders, loadOrders } from "@/lib/fulfill";
 import { MAX_CHECKOUT_ORDERS, payOptions } from "@/lib/payments";
+import { isPromptPayEnabled } from "@/lib/promptpay";
+import { createCheckoutSession, STRIPE_MIN_THB } from "@/lib/stripe";
 import { isSupabaseConfigured } from "@/lib/supabase";
 
 export const runtime = "nodejs";
@@ -9,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 /**
  * POST /api/checkout  { orderNos: string[] }
- *   -> { mode: "promptpay", orderNos } | { mode: "free" } | { mode: "mock" }
+ *   -> { mode: "stripe", url } | { mode: "promptpay", orderNos } | { mode: "free" } | { mode: "mock" }
  * เริ่มการชำระเงินของคำสั่งซื้อที่ค้างอยู่ (ทั้งตะกร้าจ่ายครั้งเดียว)
  */
 export async function POST(req: Request) {
@@ -19,7 +22,7 @@ export async function POST(req: Request) {
 
   const { method } = payOptions;
   if (!method) return NextResponse.json({ error: "payment_not_configured" }, { status: 503 });
-  // ทดสอบในเครื่องโดยยังไม่ได้ตั้งพร้อมเพย์: ให้หน้าเว็บใช้การชำระเงินแบบจำลอง
+  // ทดสอบในเครื่องโดยยังไม่ได้ตั้งช่องทางชำระเงิน: ให้หน้าเว็บใช้การชำระเงินแบบจำลอง
   if (method === "mock") return NextResponse.json({ mode: "mock" });
 
   const body = await readJsonBody(req);
@@ -40,7 +43,27 @@ export async function POST(req: Request) {
       return NextResponse.json({ mode: "free" });
     }
 
-    // หน้า /pay-qr แสดง QR พร้อมเพย์และรอร้านยืนยันรับเงิน
+    const total = open.reduce((sum, o) => sum + o.amount, 0);
+    const first = open[0]!;
+
+    // Stripe: พาไปหน้าชำระเงินของ Stripe — ยอดต่ำกว่าขั้นต่ำของ Stripe ใช้ QR พร้อมเพย์ของร้านแทนถ้าเปิดไว้
+    if (method === "stripe" && (total >= STRIPE_MIN_THB || !isPromptPayEnabled)) {
+      if (total < STRIPE_MIN_THB) return NextResponse.json({ error: "amount_too_small" }, { status: 400 });
+      const origin = new URL(req.url).origin;
+      const session = await createCheckoutSession({
+        cartNo: first.cart_no || cartNoOf(first.order_no),
+        orderNos: open.map((o) => o.order_no),
+        lines: open.map((o) => ({ name: o.book.title_th || o.book_id, amount: o.amount })),
+        email: first.customer_email,
+        successUrl: `${origin}/pay/return?session_id={CHECKOUT_SESSION_ID}`,
+        cancelUrl: `${origin}/checkout`,
+      });
+      if (!session.url) throw new Error("stripe session has no url");
+      return NextResponse.json({ mode: "stripe", url: session.url });
+    }
+
+    if (!isPromptPayEnabled) return NextResponse.json({ error: "payment_not_configured" }, { status: 503 });
+    // หน้า /pay-qr แสดง QR พร้อมเพย์ของร้านและรอการยืนยันรับเงิน
     return NextResponse.json({ mode: "promptpay", orderNos: open.map((o) => o.order_no) });
   } catch (err) {
     console.error("checkout:", err instanceof Error ? err.message : err);

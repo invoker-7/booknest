@@ -37,6 +37,10 @@ export default function PayView({ order, book, pay: payOptions }: { order: SafeO
     setError("");
     try {
       const checkout = await startCheckout([order.order_no]);
+      if (checkout.mode === "stripe") {
+        window.location.assign(checkout.url);
+        return;
+      }
       if (checkout.mode === "promptpay") {
         router.push(`/pay-qr?orders=${encodeURIComponent(order.order_no)}`);
         return;
