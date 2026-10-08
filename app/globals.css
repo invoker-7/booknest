@@ -755,10 +755,6 @@ html[lang="th"] .done-hero h1 { line-height: 1.2; }
 .ltable .acts { display: flex; gap: 8px; justify-content: flex-end; white-space: nowrap; }
 .ltable .err { color: var(--red); font-size: 12px; margin-top: 6px; text-align: right; }
 .lib-cards { display: none; }
-
-.lookup { display: grid; grid-template-columns: 3fr 9fr; gap: 32px; border-top: 1px solid var(--ink); padding: 20px 0 0; margin-top: 72px; }
-.lookup form { display: grid; grid-template-columns: 1fr 1fr auto; gap: 16px; align-items: start; }
-.lookup .btn { margin-top: 27px; }
 .lib-foot { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 24px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
 
 /* =========================================================
@@ -1022,9 +1018,6 @@ html[lang="th"] .article h1 { line-height: 1.25; }
   .lib-card dd { font-size: 14px; }
   .lib-card .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
   .lib-card .err { color: var(--red); font-size: 13px; margin-top: 8px; }
-  .lookup { grid-template-columns: 1fr; gap: 12px; margin-top: 48px; }
-  .lookup form { grid-template-columns: 1fr; gap: 0; }
-  .lookup .btn { margin-top: 4px; width: 100%; }
   .tabs { margin-top: 24px; }
 
   /* creators */

@@ -1,21 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLang } from "@/components/LangProvider";
 import { useStore } from "@/components/StoreProvider";
 import ProductArt from "@/components/ProductArt";
-import { Alert, Arrow, Download, Library } from "@/components/Icons";
-import { Button, LinkButton, Empty, StatusTag, Notice, ProductTile } from "@/components/ui";
-import { checkOrder, lookupOrder } from "@/lib/apiClient";
+import { Arrow, Download, Library } from "@/components/Icons";
+import { Button, LinkButton, Empty, StatusTag, ProductTile } from "@/components/ui";
+import { checkOrder } from "@/lib/apiClient";
 import { categoryOf } from "@/lib/catalog";
 import { openDownload } from "@/lib/download";
-import { cartNoOf, fmtDate, isEmail, pick } from "@/lib/format";
+import { cartNoOf, fmtDate, pick } from "@/lib/format";
 import { clearLocalOrders, forgetOrder, rememberOrder } from "@/lib/localOrders";
 import type { Category, LocalOrder, LookupOrder, Product } from "@/lib/types";
 
 type Tab = "purchases" | "saved";
-type LookupResult = "" | "ok" | "fail";
 
 /** หนึ่งแถวในคลัง: คำสั่งซื้อที่จำไว้ + ข้อมูลสินค้าล่าสุด (ถ้ายังวางขายอยู่) */
 interface LibraryRow {
@@ -64,18 +63,7 @@ export default function LibraryView({ products }: LibraryViewProps) {
   const [busy, setBusy] = useState("");
   const [failed, setFailed] = useState("");
 
-  const [no, setNo] = useState("");
-  const [email, setEmail] = useState("");
-  const [touched, setTouched] = useState(false);
-  const [finding, setFinding] = useState(false);
-  const [result, setResult] = useState<LookupResult>("");
   const synced = useRef(false);
-
-  // ?order=ORD-... จาก URL ใช้เติมฟอร์มค้นหา (อ่านที่เบราว์เซอร์ หน้านี้จึงเป็น static ได้)
-  useEffect(() => {
-    const order = new URLSearchParams(window.location.search).get("order");
-    if (order) setNo(order);
-  }, []);
 
   const byId = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
 
@@ -102,25 +90,6 @@ export default function LibraryView({ products }: LibraryViewProps) {
     setBusy("");
   }
 
-  async function find(e: FormEvent) {
-    e.preventDefault();
-    setTouched(true);
-    setResult("");
-    if (!no.trim() || !isEmail(email)) return;
-    setFinding(true);
-    const order = await lookupOrder(no.trim(), email.trim());
-    if (order) {
-      remember(order);
-      setResult("ok");
-      setNo("");
-      setTouched(false);
-      setTab("purchases");
-    } else {
-      setResult("fail");
-    }
-    setFinding(false);
-  }
-
   function clearAll() {
     if (!window.confirm(t("clearConfirm"))) return;
     clearLocalOrders();
@@ -144,8 +113,6 @@ export default function LibraryView({ products }: LibraryViewProps) {
     };
   });
 
-  const noBad = touched && !no.trim();
-  const emailBad = touched && !isEmail(email);
 
   const actions = (r: LibraryRow) =>
     r.pending ? (
@@ -288,53 +255,6 @@ export default function LibraryView({ products }: LibraryViewProps) {
           </div>
         </>
       )}
-
-      <section className="lookup" aria-labelledby="lookup-title">
-        <div className="doc-label">
-          <b>Lookup</b>
-          <h2 id="lookup-title">{t("findPurchase")}</h2>
-          <p style={{ fontFamily: "var(--sans)", textTransform: "none", letterSpacing: 0, fontSize: 14, marginTop: 8 }}>
-            {t("findPurchaseSub")}
-          </p>
-        </div>
-        <div>
-          <form onSubmit={find} noValidate>
-            <div className={`field${noBad ? " invalid" : ""}`}>
-              <label htmlFor="lk-no">{t("trackNo")}</label>
-              <input
-                id="lk-no"
-                type="text"
-                autoCapitalize="characters"
-                autoComplete="off"
-                placeholder={t("trackNoPh")}
-                value={no}
-                onChange={(e) => setNo(e.target.value)}
-                aria-invalid={noBad || undefined}
-              />
-              <span className="err"><Alert size={14} /> {t("errOrderNo")}</span>
-            </div>
-            <div className={`field${emailBad ? " invalid" : ""}`}>
-              <label htmlFor="lk-email">{t("email")}</label>
-              <input
-                id="lk-email"
-                type="email"
-                inputMode="email"
-                autoComplete="email"
-                placeholder={t("emailPh")}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                aria-invalid={emailBad || undefined}
-              />
-              <span className="err"><Alert size={14} /> {t("errEmail")}</span>
-            </div>
-            <Button type="submit" variant="secondary" loading={finding} loadingText={t("loading")}>
-              {t("trackBtn")}
-            </Button>
-          </form>
-          {result === "fail" && <Notice tone="error">{t("trackFail")}</Notice>}
-          {result === "ok" && <Notice tone="info">{t("trackAdded")}</Notice>}
-        </div>
-      </section>
       <div style={{ height: 112 }} />
     </div>
   );
