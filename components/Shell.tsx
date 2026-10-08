@@ -39,8 +39,10 @@ const TABS: TabItem[] = [
   { href: "/", key: "navHome", Icon: Home },
   { href: "/products", key: "navProducts", Icon: Box },
   { href: "/archive", key: "navArchive", Icon: Archive },
-  { href: "/library", key: "navLibrary", Icon: Library },
 ];
+// ช่องสุดท้ายของแท็บบาร์: คลังของฉันเป็นของสมาชิก ผู้ที่ยังไม่ล็อกอินเห็นปุ่มเข้าสู่ระบบแทน
+const TAB_LIBRARY: TabItem = { href: "/library", key: "navLibrary", Icon: Library };
+const TAB_LOGIN: TabItem = { href: "/login", key: "loginBtn", Icon: User };
 
 // หน้าที่มีแถบปุ่มหลักติดล่างจอของตัวเอง ไม่ต้องแสดงแท็บบาร์มือถือ
 const NO_TABBAR = ["/product/", "/cart", "/checkout", "/pay/", "/receipt", "/login"];
@@ -146,7 +148,7 @@ function MobileMenu({ open, onClose, pathname }: { open: boolean; onClose: () =>
   if (!open) return null;
   const links: NavItem[] = [
     ...NAV,
-    { href: "/library", key: "navLibrary" },
+    ...(user ? [{ href: "/library", key: "navLibrary" } as NavItem] : []),
     { href: "/cart", key: "navCart" },
     user ? { href: "/account", key: "navAccount" } : { href: "/login", key: "loginBtn" },
     { href: "/about", key: "about" },
@@ -192,6 +194,7 @@ function Toast() {
 
 function Footer() {
   const { t } = useLang();
+  const { user } = useAuth();
   return (
     <footer className="footer">
       <div className="wrap">
@@ -211,7 +214,7 @@ function Footer() {
           <nav aria-label={t("footerHelp")}>
             <h2 className="mono">{t("footerHelp")}</h2>
             <ul>
-              <li><Link href="/library">{t("navLibrary")}</Link></li>
+              {user && <li><Link href="/library">{t("navLibrary")}</Link></li>}
               <li><Link href="/cart">{t("navCart")}</Link></li>
               <li><Link href="/about">{t("about")}</Link></li>
             </ul>
@@ -232,6 +235,7 @@ function Footer() {
 export default function Shell({ children }: { children: ReactNode }) {
   const pathname = usePathname() || "/";
   const { t } = useLang();
+  const { user } = useAuth();
   const [searchOpen, setSearchOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -280,14 +284,16 @@ export default function Shell({ children }: { children: ReactNode }) {
               <Search />
               <span className="hdr-label">{t("navSearch")}</span>
             </button>
-            <Link
-              href="/library"
-              className="hdr-action hide-sm"
-              aria-current={isActive(pathname, "/library") ? "page" : undefined}
-            >
-              <Library />
-              <span className="hdr-label">{t("navLibrary")}</span>
-            </Link>
+            {user && (
+              <Link
+                href="/library"
+                className="hdr-action hide-sm"
+                aria-current={isActive(pathname, "/library") ? "page" : undefined}
+              >
+                <Library />
+                <span className="hdr-label">{t("navLibrary")}</span>
+              </Link>
+            )}
             <AccountLink pathname={pathname} />
             <CartLink withLabel />
             <button
@@ -313,7 +319,7 @@ export default function Shell({ children }: { children: ReactNode }) {
 
       {showTabbar && (
         <nav className="tabbar" aria-label="App">
-          {TABS.map(({ href, key, Icon }) => (
+          {[...TABS, user ? TAB_LIBRARY : TAB_LOGIN].map(({ href, key, Icon }) => (
             <Link key={href} href={href} aria-current={isActive(pathname, href) ? "page" : undefined}>
               <Icon />
               <span>{t(key)}</span>
