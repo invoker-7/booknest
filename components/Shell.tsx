@@ -32,15 +32,16 @@ export function LangToggle({ className = "" }: { className?: string }) {
 const NAV: NavItem[] = [
   { href: "/products", key: "navProducts" },
   { href: "/creators", key: "navCreators" },
-  { href: "/archive", key: "navArchive" },
 ];
+// คลังบทความแสดงในเมนูเฉพาะเมื่อมีบทความ (ร้านที่ยังไม่มีบทความไม่ควรมีเมนูที่พาไปหน้าว่าง)
+const NAV_ARCHIVE: NavItem = { href: "/archive", key: "navArchive" };
 
 const TABS: TabItem[] = [
   { href: "/", key: "navHome", Icon: Home },
   { href: "/products", key: "navProducts", Icon: Box },
-  { href: "/archive", key: "navArchive", Icon: Archive },
 ];
 // ช่องสุดท้ายของแท็บบาร์: คลังของฉันเป็นของสมาชิก ผู้ที่ยังไม่ล็อกอินเห็นปุ่มเข้าสู่ระบบแทน
+const TAB_ARCHIVE: TabItem = { href: "/archive", key: "navArchive", Icon: Archive };
 const TAB_LIBRARY: TabItem = { href: "/library", key: "navLibrary", Icon: Library };
 const TAB_LOGIN: TabItem = { href: "/login", key: "loginBtn", Icon: User };
 
@@ -131,7 +132,7 @@ function SearchPanel({ open, onClose }: { open: boolean; onClose: () => void }) 
   );
 }
 
-function MobileMenu({ open, onClose, pathname }: { open: boolean; onClose: () => void; pathname: string }) {
+function MobileMenu({ open, onClose, pathname, hasArchive }: { open: boolean; onClose: () => void; pathname: string; hasArchive: boolean }) {
   const { t } = useLang();
   const { user } = useAuth();
   useEffect(() => {
@@ -148,6 +149,7 @@ function MobileMenu({ open, onClose, pathname }: { open: boolean; onClose: () =>
   if (!open) return null;
   const links: NavItem[] = [
     ...NAV,
+    ...(hasArchive ? [NAV_ARCHIVE] : []),
     ...(user ? [{ href: "/library", key: "navLibrary" } as NavItem] : []),
     { href: "/cart", key: "navCart" },
     user ? { href: "/account", key: "navAccount" } : { href: "/login", key: "loginBtn" },
@@ -192,7 +194,7 @@ function Toast() {
   );
 }
 
-function Footer() {
+function Footer({ hasArchive }: { hasArchive: boolean }) {
   const { t } = useLang();
   const { user } = useAuth();
   return (
@@ -208,7 +210,7 @@ function Footer() {
             <ul>
               <li><Link href="/products">{t("navProducts")}</Link></li>
               <li><Link href="/creators">{t("navCreators")}</Link></li>
-              <li><Link href="/archive">{t("navArchive")}</Link></li>
+              {hasArchive && <li><Link href="/archive">{t("navArchive")}</Link></li>}
             </ul>
           </nav>
           <nav aria-label={t("footerHelp")}>
@@ -232,7 +234,7 @@ function Footer() {
   );
 }
 
-export default function Shell({ children }: { children: ReactNode }) {
+export default function Shell({ children, hasArchive = false }: { children: ReactNode; hasArchive?: boolean }) {
   const pathname = usePathname() || "/";
   const { t } = useLang();
   const { user } = useAuth();
@@ -266,7 +268,7 @@ export default function Shell({ children }: { children: ReactNode }) {
           <Wordmark />
 
           <nav className="hdr-nav" aria-label="Primary">
-            {NAV.map(({ href, key }) => (
+            {[...NAV, ...(hasArchive ? [NAV_ARCHIVE] : [])].map(({ href, key }) => (
               <Link key={href} href={href} aria-current={isActive(pathname, href) ? "page" : undefined}>
                 {t(key)}
               </Link>
@@ -311,15 +313,15 @@ export default function Shell({ children }: { children: ReactNode }) {
         <SearchPanel open={searchOpen} onClose={() => setSearchOpen(false)} />
       </header>
 
-      <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} pathname={pathname} />
+      <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} pathname={pathname} hasArchive={hasArchive} />
 
       <main id="main" className={showTabbar ? "has-tabbar" : ""}>{children}</main>
 
-      <Footer />
+      <Footer hasArchive={hasArchive} />
 
       {showTabbar && (
         <nav className="tabbar" aria-label="App">
-          {[...TABS, user ? TAB_LIBRARY : TAB_LOGIN].map(({ href, key, Icon }) => (
+          {[...TABS, ...(hasArchive ? [TAB_ARCHIVE] : []), user ? TAB_LIBRARY : TAB_LOGIN].map(({ href, key, Icon }) => (
             <Link key={href} href={href} aria-current={isActive(pathname, href) ? "page" : undefined}>
               <Icon />
               <span>{t(key)}</span>

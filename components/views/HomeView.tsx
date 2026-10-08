@@ -178,34 +178,36 @@ export default function HomeView({ products, creatorCount, live }: HomeViewProps
         </div>
       </section>
 
-      <section className="band band-end" aria-labelledby="sec-archive">
-        <div className="wrap">
-          <SectionHead
-            label="Archive"
-            id="sec-archive"
-            title={t("latestArchive")}
-            action={<TextLink href="/archive">{t("viewAll")}</TextLink>}
-          />
-          <div className={articles.length === 1 ? "stories solo" : "stories"}>
-            {articles.map((a, i) => (
-              <article className="story" key={a.slug}>
-                <div className="story-img">
-                  <Image src={STORY_IMAGES[i % STORY_IMAGES.length]} alt="" fill sizes="(max-width: 760px) 100vw, 640px" />
-                </div>
-                <div className="story-body">
-                  <div className="story-meta mono">
-                    <span>{fmtDate(a.date, lang)}</span>
-                    <span>{t(`type_${a.type}`)}</span>
+      {articles.length > 0 && (
+        <section className="band band-end" aria-labelledby="sec-archive">
+          <div className="wrap">
+            <SectionHead
+              label="Archive"
+              id="sec-archive"
+              title={t("latestArchive")}
+              action={<TextLink href="/archive">{t("viewAll")}</TextLink>}
+            />
+            <div className={articles.length === 1 ? "stories solo" : "stories"}>
+              {articles.map((a, i) => (
+                <article className="story" key={a.slug}>
+                  <div className="story-img">
+                    <Image src={STORY_IMAGES[i % STORY_IMAGES.length]} alt="" fill sizes="(max-width: 760px) 100vw, 640px" />
                   </div>
-                  <h3><Link href={`/archive/${a.slug}`}>{pick(a, "title", lang)}</Link></h3>
-                  <p>{pick(a, "dek", lang)}</p>
-                  <span className="story-more" aria-hidden="true">{t("readMore")} <Arrow size={16} /></span>
-                </div>
-              </article>
-            ))}
+                  <div className="story-body">
+                    <div className="story-meta mono">
+                      <span>{fmtDate(a.date, lang)}</span>
+                      <span>{t(`type_${a.type}`)}</span>
+                    </div>
+                    <h3><Link href={`/archive/${a.slug}`}>{pick(a, "title", lang)}</Link></h3>
+                    <p>{pick(a, "dek", lang)}</p>
+                    <span className="story-more" aria-hidden="true">{t("readMore")} <Arrow size={16} /></span>
+                  </div>
+                </article>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
     </>
   );
 }

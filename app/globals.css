@@ -881,7 +881,7 @@ html[lang="th"] .article h1 { line-height: 1.25; }
 
   /* แท็บบาร์แบบแอป */
   .tabbar {
-    display: grid; grid-template-columns: repeat(4, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 45;
+    display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; position: fixed; left: 0; right: 0; bottom: 0; z-index: 45;
     background: rgba(255, 255, 255, .98); border-top: 1px solid var(--line); padding-bottom: var(--safe-b);
   }
   .tabbar a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; height: var(--tabbar); font-size: 11px; color: var(--muted); letter-spacing: .02em; position: relative; }

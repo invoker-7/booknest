@@ -6,6 +6,7 @@ import { LangProvider } from "@/components/LangProvider";
 import { StoreProvider } from "@/components/StoreProvider";
 import { AuthProvider } from "@/components/AuthProvider";
 import Shell from "@/components/Shell";
+import { ARCHIVE } from "@/lib/archive";
 
 // ฟอนต์ถูกดาวน์โหลดตอน build และเสิร์ฟจากโดเมนเดียวกัน (ไม่มี request ไป Google ตอนใช้งาน)
 const sans = IBM_Plex_Sans({
@@ -55,7 +56,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <LangProvider>
           <StoreProvider>
             <AuthProvider>
-              <Shell>{children}</Shell>
+              <Shell hasArchive={ARCHIVE.length > 0}>{children}</Shell>
             </AuthProvider>
           </StoreProvider>
         </LangProvider>
