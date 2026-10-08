@@ -7,7 +7,7 @@ import { useStore } from "@/components/StoreProvider";
 import ProductArt from "@/components/ProductArt";
 import { Arrow, Download, Library } from "@/components/Icons";
 import { Button, LinkButton, Empty, StatusTag, ProductTile } from "@/components/ui";
-import { checkOrder } from "@/lib/apiClient";
+import { cancelOrder, checkOrder } from "@/lib/apiClient";
 import { categoryOf } from "@/lib/catalog";
 import { openDownload } from "@/lib/download";
 import { cartNoOf, fmtDate, pick } from "@/lib/format";
@@ -57,7 +57,7 @@ interface LibraryViewProps {
 
 export default function LibraryView({ products }: LibraryViewProps) {
   const { t, lang } = useLang();
-  const { ready, orders, saved, refresh } = useStore();
+  const { ready, orders, saved, refresh, notify } = useStore();
 
   const [tab, setTab] = useState<Tab>("purchases");
   const [busy, setBusy] = useState("");
@@ -90,6 +90,24 @@ export default function LibraryView({ products }: LibraryViewProps) {
     setBusy("");
   }
 
+  /** ยกเลิกคำสั่งซื้อที่ยังไม่ได้ชำระ (ทั้งตะกร้า) แล้วเอาออกจากคลัง */
+  async function cancel(o: LocalOrder) {
+    if (!window.confirm(t("cancelOrderAsk"))) return;
+    setBusy(o.orderNo);
+    setFailed("");
+    try {
+      const { orderNos } = await cancelOrder(o.orderNo);
+      orderNos.forEach(forgetOrder);
+      notify(t("cancelOrderDone"));
+    } catch (err) {
+      // server ไม่มีคำสั่งซื้อนี้แล้ว: เอาออกจากคลังได้เลย กรณีอื่น (จ่ายแล้ว แนบสลิปแล้ว) แจ้งให้ทราบ
+      if (err instanceof Error && err.message === "not_found") forgetOrder(o.orderNo);
+      else notify(t("cancelOrderFail"));
+    }
+    refresh();
+    setBusy("");
+  }
+
   function clearAll() {
     if (!window.confirm(t("clearConfirm"))) return;
     clearLocalOrders();
@@ -116,14 +134,21 @@ export default function LibraryView({ products }: LibraryViewProps) {
 
   const actions = (r: LibraryRow) =>
     r.pending ? (
-      <LinkButton
-        // แนบสลิปแล้ว: ไปหน้า QR ที่แสดงสถานะการตรวจสลิปได้เลย
-        href={r.o.slip ? `/pay-qr?orders=${encodeURIComponent(r.o.orderNo)}` : `/pay/${encodeURIComponent(r.o.orderNo)}`}
-        size="small"
-        variant={r.o.slip ? "secondary" : "primary"}
-      >
-        {t(r.o.slip ? "viewPayStatus" : "completePayment")}
-      </LinkButton>
+      <>
+        <LinkButton
+          // แนบสลิปแล้ว: ไปหน้า QR ที่แสดงสถานะการตรวจสลิปได้เลย
+          href={r.o.slip ? `/pay-qr?orders=${encodeURIComponent(r.o.orderNo)}` : `/pay/${encodeURIComponent(r.o.orderNo)}`}
+          size="small"
+          variant={r.o.slip ? "secondary" : "primary"}
+        >
+          {t(r.o.slip ? "viewPayStatus" : "completePayment")}
+        </LinkButton>
+        {!r.o.slip && (
+          <Button size="small" variant="danger" onClick={() => cancel(r.o)} loading={busy === r.o.orderNo} aria-label={`${t("cancelOrder")}: ${r.title}`}>
+            {t("cancelOrder")}
+          </Button>
+        )}
+      </>
     ) : (
       <>
         <Button

@@ -10,6 +10,8 @@ import { Alert, Arrow, Cart, Check, Info, Lock, Spinner } from "@/components/Ico
 import { Button, LinkButton, Empty, Steps, Notice, PayMethods, PayTrust } from "@/components/ui";
 import { SummaryLines, totalsOf } from "@/components/views/CartView";
 import { isEmail, money, pick } from "@/lib/format";
+import { forgetOrder } from "@/lib/localOrders";
+import { cancelOrder } from "@/lib/apiClient";
 import { purchase, PurchaseError, type PurchasePhase } from "@/lib/purchase";
 import type { CartItem, PayOptions } from "@/lib/types";
 
@@ -22,7 +24,7 @@ type Phase = "idle" | PurchasePhase | "error";
 export default function CheckoutView({ live, pay: payOptions }: { live: boolean; pay: PayOptions }) {
   const { t, lang } = useLang();
   const router = useRouter();
-  const { ready, cart, orders, removeManyFromCart } = useStore();
+  const { ready, cart, orders, removeManyFromCart, refresh } = useStore();
   const { ready: authReady, user } = useAuth();
 
   const [step, setStep] = useState<1 | 2>(1); // 1 = ข้อมูลผู้ซื้อ, 2 = ชำระเงิน
@@ -32,6 +34,7 @@ export default function CheckoutView({ live, pay: payOptions }: { live: boolean;
   const [touched, setTouched] = useState(false);
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const leaving = useRef(false);
   const paying = useRef<CartItem[] | null>(null); // รายการที่กำลังชำระ — ตะกร้าจะถูกตัดรายการที่จ่ายแล้วออกระหว่างทาง
   const nameRef = useRef<HTMLInputElement>(null);
@@ -40,6 +43,21 @@ export default function CheckoutView({ live, pay: payOptions }: { live: boolean;
     const restored = (e: PageTransitionEvent) => e.persisted && window.location.reload();
     window.addEventListener("pageshow", restored);
     return () => window.removeEventListener("pageshow", restored);
+  }, []);
+
+  // กลับมาจากหน้าชำระเงินของ Stripe โดยไม่ได้จ่าย: ยกเลิกคำสั่งซื้อที่สร้างไว้ สินค้ายังอยู่ในตะกร้า
+  useEffect(() => {
+    const cancelled = new URLSearchParams(window.location.search).get("cancelled");
+    if (!cancelled) return;
+    window.history.replaceState(null, "", "/checkout");
+    cancelOrder(cancelled)
+      .then(({ orderNos }) => {
+        orderNos.forEach(forgetOrder);
+        refresh();
+        setNotice(t("payCancelled"));
+      })
+      .catch(() => {}); // จ่ายไปแล้วหรือไม่มีคำสั่งซื้อนี้: ไม่ต้องทำอะไร คลังจะแสดงสถานะจริง
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // เติมชื่อและอีเมลจากคำสั่งซื้อล่าสุดบนอุปกรณ์นี้
@@ -125,6 +143,7 @@ export default function CheckoutView({ live, pay: payOptions }: { live: boolean;
   return (
     <div className="wrap page-pad">
       <Steps active={step} />
+      {notice && <div style={{ marginBottom: 24 }}><Notice tone="info">{notice}</Notice></div>}
 
       <div className="co-grid">
         <div>

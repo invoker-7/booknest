@@ -452,7 +452,7 @@ export async function deleteUser(id: string): Promise<boolean> {
 /* ---------- ข้อมูลดิบ (อ่านอย่างเดียว) ---------- */
 
 /** ตารางที่หน้า "ข้อมูลดิบ" เปิดดูได้ — ไม่รวม login_otps (รหัสยืนยัน) และตารางของ Supabase Auth */
-export const RAW_TABLES = ["books", "orders", "profiles", "shops", "order_counters"] as const;
+export const RAW_TABLES = ["books", "orders", "profiles", "shops", "articles", "reviews", "article_comments", "order_counters"] as const;
 export type RawTable = (typeof RAW_TABLES)[number];
 export const RAW_PAGE_SIZE = 50;
 
@@ -462,7 +462,22 @@ const RAW_ORDER: Record<RawTable, { column: string; ascending: boolean }> = {
   orders: { column: "created_at", ascending: false },
   profiles: { column: "created_at", ascending: false },
   shops: { column: "id", ascending: true },
+  articles: { column: "published_at", ascending: false },
+  reviews: { column: "created_at", ascending: false },
+  article_comments: { column: "created_at", ascending: false },
   order_counters: { column: "day", ascending: false },
+};
+
+/** คีย์หลักของแต่ละตาราง — ใช้ระบุแถวตอนแก้ไขและลบจากหน้าข้อมูลดิบ (แก้ค่าคีย์หลักเองไม่ได้) */
+export const RAW_KEYS: Record<RawTable, string> = {
+  books: "id",
+  orders: "id",
+  profiles: "id",
+  shops: "id",
+  articles: "slug",
+  reviews: "id",
+  article_comments: "id",
+  order_counters: "day",
 };
 
 export interface RawTableData {
@@ -492,6 +507,72 @@ export async function readRawTable(table: RawTable, page: number): Promise<RawTa
   }
   const rows = data ?? [];
   return { columns: rows[0] ? Object.keys(rows[0]) : [], rows, total: count ?? rows.length, failed: false };
+}
+
+const isRawTable = (name: unknown): name is RawTable => RAW_TABLES.includes(name as RawTable);
+
+/** แปลงค่าที่พิมพ์มาเป็นชนิดเดียวกับค่าเดิมของช่องนั้น — โยน Error เมื่อแปลงไม่ได้ */
+function coerceRaw(column: string, input: unknown, current: unknown): unknown {
+  if (input === null) return null;
+  const value = String(input);
+  if (typeof current === "number") {
+    const n = Number(value);
+    if (value.trim() === "" || !Number.isFinite(n)) throw new Error(`${column}: ต้องเป็นตัวเลข`);
+    return n;
+  }
+  if (typeof current === "boolean") {
+    if (value !== "true" && value !== "false") throw new Error(`${column}: ต้องเป็น true หรือ false`);
+    return value === "true";
+  }
+  if (current !== null && typeof current === "object") {
+    try {
+      return JSON.parse(value);
+    } catch {
+      throw new Error(`${column}: ต้องเป็น JSON ที่ถูกต้อง`);
+    }
+  }
+  // ค่าเดิมเป็นข้อความหรือ null: ส่งเป็นข้อความ ฐานข้อมูลแปลงตามชนิดของคอลัมน์เอง
+  return value;
+}
+
+/**
+ * แก้ไขหนึ่งแถวจากหน้าข้อมูลดิบ — values มีเฉพาะช่องที่เปลี่ยน (null = ล้างค่า)
+ * แก้ได้เฉพาะคอลัมน์ที่มีอยู่จริงของแถวนั้น และแก้คีย์หลักไม่ได้ กติกาของฐานข้อมูล (check, foreign key) ยังบังคับตามปกติ
+ * คืนข้อความผิดพลาด หรือ null เมื่อสำเร็จ (ผู้เรียกต้องตรวจสิทธิ์ admin ก่อน)
+ */
+export async function updateRawRow(table: unknown, key: unknown, values: unknown): Promise<string | null> {
+  if (!isRawTable(table) || typeof key !== "string" || !key || !values || typeof values !== "object") return "invalid_input";
+  const pk = RAW_KEYS[table];
+  const db = supabaseAdmin();
+  const { data: row, error: readError } = await db.from(table).select("*").eq(pk, key).retry(false).maybeSingle<Record<string, unknown>>();
+  if (readError) return readError.message;
+  if (!row) return "not_found";
+
+  const patch: Record<string, unknown> = {};
+  try {
+    for (const [column, input] of Object.entries(values as Record<string, unknown>)) {
+      if (column === pk || !(column in row)) continue;
+      patch[column] = coerceRaw(column, input, row[column]);
+    }
+  } catch (err) {
+    return err instanceof Error ? err.message : "invalid_input";
+  }
+  if (Object.keys(patch).length === 0) return null;
+
+  const { error } = await db.from(table).update(patch).eq(pk, key);
+  if (error) console.error(`updateRawRow ${table}:`, error.message);
+  return error ? error.message : null;
+}
+
+/** ลบหนึ่งแถวจากหน้าข้อมูลดิบ — คืนข้อความผิดพลาด หรือ null เมื่อสำเร็จ (ผู้เรียกต้องตรวจสิทธิ์ admin ก่อน) */
+export async function deleteRawRow(table: unknown, key: unknown): Promise<string | null> {
+  if (!isRawTable(table) || typeof key !== "string" || !key) return "invalid_input";
+  const { data, error } = await supabaseAdmin().from(table).delete().eq(RAW_KEYS[table], key).select(RAW_KEYS[table]);
+  if (error) {
+    console.error(`deleteRawRow ${table}:`, error.message);
+    return error.message;
+  }
+  return data?.length ? null : "not_found";
 }
 
 /* ---------- ตรวจข้อมูลสินค้า (ใช้ทั้งฟอร์มและ import) ---------- */

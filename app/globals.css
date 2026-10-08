@@ -1174,6 +1174,22 @@ button.adm-back:disabled { opacity: .5; }
 .imgbox-preview .plate { width: 100%; height: 100%; }
 .imgbox .acts { display: flex; gap: 8px; flex-wrap: wrap; }
 .imgbox-side { display: flex; flex-direction: column; gap: 12px; flex: 1; min-width: 200px; font-size: 14px; }
+.rawacts { position: sticky; left: 0; background: var(--surface); z-index: 1; width: 1%; }
+.rawacts .acts { justify-content: flex-start; }
+.rawedit { width: min(720px, calc(100vw - 32px)); max-height: calc(100vh - 48px); padding: 0; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink); }
+.rawedit::backdrop { background: rgba(19, 36, 63, .55); }
+.rawedit form { display: flex; flex-direction: column; max-height: calc(100vh - 50px); }
+.rawedit h2 { font-size: 20px; font-weight: 600; padding: 20px 24px 16px; border-bottom: 1px solid var(--line); display: flex; gap: 12px; align-items: baseline; }
+.rawedit h2 span { font-size: 13px; font-weight: 400; }
+.rawedit .notice { margin: 16px 24px 0; }
+.rawedit-fields { padding: 20px 24px 4px; overflow-y: auto; }
+.rawedit-fields .field { margin-bottom: 16px; }
+.rawedit-fields label { font-size: 12px; color: var(--muted); }
+.rawedit-fields textarea { border: 1px solid var(--field); background: var(--surface); padding: 10px 12px; font-size: 13px; resize: vertical; width: 100%; }
+.rawedit-fields input:disabled, .rawedit-fields textarea:disabled { background: var(--bg); color: var(--muted); }
+.rawnull { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.rawnull input { appearance: auto; -webkit-appearance: checkbox; width: 16px; height: 16px; min-height: 0; padding: 0; border: 0; flex: none; }
+.rawedit-actions { display: flex; gap: 8px; padding: 16px 24px; border-top: 1px solid var(--line); }
 .rawtabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 16px; border-bottom: 1px solid var(--line); }
 .rawtabs a { padding: 10px 14px; font-size: 13px; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
 .rawtabs a:hover { color: var(--ink); }

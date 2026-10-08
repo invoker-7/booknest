@@ -94,6 +94,17 @@ export function createCheckoutSession(input: {
 export const getCheckoutSession = (id: string): Promise<StripeSession> =>
   call<StripeSession>(`/v1/checkout/sessions/${encodeURIComponent(id)}`);
 
+/**
+ * ปิดหน้าชำระเงินที่ยังเปิดค้างอยู่ของคำสั่งซื้อนี้ (ผู้ซื้อยกเลิกคำสั่งซื้อ) — คืนจำนวนที่ปิด
+ * Stripe ค้นหน้าชำระเงินด้วยเลขคำสั่งซื้อตรง ๆ ไม่ได้ จึงไล่ดูหน้าที่ยังเปิดอยู่ล่าสุดแล้วเทียบเลขเอง
+ */
+export async function expireOpenSessions(cartNo: string): Promise<number> {
+  const { data } = await call<{ data: StripeSession[] }>("/v1/checkout/sessions?status=open&limit=100");
+  const open = data.filter((s) => s.client_reference_id === cartNo);
+  await Promise.all(open.map((s) => call<StripeSession>(`/v1/checkout/sessions/${encodeURIComponent(s.id)}/expire`, new URLSearchParams())));
+  return open.length;
+}
+
 interface StripeEvent {
   type: string;
   data: { object: StripeSession };

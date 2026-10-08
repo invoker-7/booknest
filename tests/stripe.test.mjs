@@ -130,6 +130,27 @@ test("อ่านสถานะหน้าชำระเงินจาก S
   assert.equal(calls[0].auth, `Bearer ${SECRET}`);
 });
 
+test("ยกเลิกคำสั่งซื้อ: ปิดเฉพาะหน้าชำระเงินที่ยังเปิดอยู่ของคำสั่งซื้อนั้น", async () => {
+  calls.length = 0;
+  reply = { status: 200, body: { data: [
+    { id: "cs_a", client_reference_id: "VX-2001" },
+    { id: "cs_b", client_reference_id: "VX-9999" },
+    { id: "cs_c", client_reference_id: "VX-2001" },
+  ] } };
+  assert.equal(await stripe.expireOpenSessions("VX-2001"), 2);
+  assert.equal(calls[0].method, "GET");
+  assert.equal(calls[0].path, "/v1/checkout/sessions?status=open&limit=100");
+  const expired = calls.slice(1).map((c) => `${c.method} ${c.path}`).sort();
+  assert.deepEqual(expired, ["POST /v1/checkout/sessions/cs_a/expire", "POST /v1/checkout/sessions/cs_c/expire"]);
+});
+
+test("ยกเลิกคำสั่งซื้อ: ไม่มีหน้าชำระเงินค้างอยู่ก็ไม่เรียกปิด", async () => {
+  calls.length = 0;
+  reply = { status: 200, body: { data: [{ id: "cs_b", client_reference_id: "VX-9999" }] } };
+  assert.equal(await stripe.expireOpenSessions("VX-2001"), 0);
+  assert.equal(calls.length, 1);
+});
+
 const EVENT = JSON.stringify({
   type: "checkout.session.completed",
   data: { object: { id: "cs_test_1", payment_status: "paid", client_reference_id: "VX-1001" } },

@@ -119,6 +119,10 @@ export async function checkOrder(orderNo: string, email: string): Promise<Lookup
   }
 }
 
+/** ยกเลิกคำสั่งซื้อที่ยังไม่ได้ชำระ (ทั้งตะกร้า) — คืนเลขแถวที่ถูกยกเลิก โยน error เมื่อยกเลิกไม่ได้ */
+export const cancelOrder = (orderNo: string) =>
+  postJson<{ orderNos: string[] }>("/api/orders/cancel", { orderNo });
+
 /** ขอลิงก์ดาวน์โหลดชั่วคราว — คืน null เมื่อไม่สำเร็จ */
 export async function requestDownloadUrl(orderNo: string, email: string): Promise<string | null> {
   try {

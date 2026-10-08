@@ -52,13 +52,15 @@ export async function POST(req: Request) {
     if (method === "stripe" && (total >= STRIPE_MIN_THB || !isPromptPayEnabled)) {
       if (total < STRIPE_MIN_THB) return NextResponse.json({ error: "amount_too_small" }, { status: 400 });
       const origin = new URL(req.url).origin;
+      const cartNo = first.cart_no || cartNoOf(first.order_no);
       const session = await createCheckoutSession({
-        cartNo: first.cart_no || cartNoOf(first.order_no),
+        cartNo,
         orderNos: open.map((o) => o.order_no),
         lines: open.map((o) => ({ name: o.book.title_th || o.book_id, amount: o.amount })),
         email: first.customer_email,
         successUrl: `${origin}/pay/return?session_id={CHECKOUT_SESSION_ID}`,
-        cancelUrl: `${origin}/checkout`,
+        // กดย้อนกลับจากหน้าของ Stripe = ยกเลิก: หน้า checkout จะยกเลิกคำสั่งซื้อนี้ให้ สินค้ายังอยู่ในตะกร้า
+        cancelUrl: `${origin}/checkout?cancelled=${encodeURIComponent(cartNo)}`,
       });
       if (!session.url) throw new Error("stripe session has no url");
       return NextResponse.json({ mode: "stripe", url: session.url });

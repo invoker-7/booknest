@@ -1,5 +1,5 @@
 import RawDataView from "@/components/admin/RawDataView";
-import { RAW_PAGE_SIZE, RAW_TABLES, readRawTable, type RawTable } from "@/lib/admin";
+import { RAW_KEYS, RAW_PAGE_SIZE, RAW_TABLES, readRawTable, type RawTable } from "@/lib/admin";
 import { withAdmin } from "@/lib/auth";
 
 export const metadata = { title: "Raw data" };
@@ -16,5 +16,5 @@ export default async function AdminRawPage({ searchParams }: RawPageProps) {
   const page = Math.max(1, Math.floor(Number(first(searchParams?.page))) || 1);
 
   const { data } = await withAdmin("/admin/raw", () => readRawTable(table, page));
-  return <RawDataView tables={RAW_TABLES} table={table} page={page} pageSize={RAW_PAGE_SIZE} {...data} />;
+  return <RawDataView tables={RAW_TABLES} table={table} keyColumn={RAW_KEYS[table]} page={page} pageSize={RAW_PAGE_SIZE} {...data} />;
 }
