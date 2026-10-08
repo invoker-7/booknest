@@ -171,7 +171,7 @@ export default function DashboardView({ initial }: { initial: AdminStats }) {
                 {stats.recent.map((o) => (
                   <tr key={o.order_no}>
                     <td className="mono">{o.order_no}</td>
-                    <td>{o.title}</td>
+                    <td>{o.items.map((item) => item.title).join(", ")}</td>
                     <td>{o.customer_email}</td>
                     <td className="mono">{fmtDate(o.created_at, lang)} {fmtTime(o.created_at)}</td>
                     <td><StatusTag status={o.status} /></td>

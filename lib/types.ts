@@ -132,6 +132,8 @@ export interface OrderRow {
   delivered_at?: string | null;
   created_at: string;
   user_id?: string | null;
+  /** เลขคำสั่งซื้อของตะกร้าที่แถวนี้อยู่ — null = คำสั่งซื้อเก่าที่มีชิ้นเดียว (ใช้ order_no) */
+  cart_no?: string | null;
 }
 
 export interface OrderWithBook extends OrderRow {
@@ -298,16 +300,19 @@ export interface ProductInput {
   shop_id: string | null;
 }
 
+/** หนึ่งคำสั่งซื้อ = หนึ่งตะกร้า (อาจมีสินค้าหลายชิ้น) */
 export interface AdminOrder {
+  /** เลขคำสั่งซื้อของตะกร้า */
   order_no: string;
+  /** PENDING เมื่อยังมีชิ้นที่ไม่ได้จ่าย, PAID เมื่อจ่ายแล้วแต่ยังส่งไฟล์ไม่ครบ, COMPLETED เมื่อส่งครบ */
   status: OrderStatus;
+  /** ยอดรวมทั้งตะกร้า */
   amount: number;
   customer_name: string;
   customer_email: string;
   created_at: string;
   paid_at: string | null;
-  book_id: string;
-  title: string;
+  items: { book_id: string; title: string; amount: number }[];
   /** ยังไม่ได้จ่าย แต่ผู้ซื้อแนบสลิปแล้ว */
   slip?: boolean;
 }

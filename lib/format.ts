@@ -66,4 +66,10 @@ export function pick(row: object | null | undefined, field: string, lang: Lang):
   return typeof value === "string" ? value : "";
 }
 
+/**
+ * เลขคำสั่งซื้อที่แสดงให้คนเห็น: หนึ่งตะกร้ามีเลขเดียว
+ * แถวที่สองเป็นต้นไปของตะกร้าเก็บเป็น <เลขคำสั่งซื้อ>-2, -3 … (ดู supabase/cart.sql) — ตัดส่วนท้ายนั้นออก
+ */
+export const cartNoOf = (orderNo: string): string => orderNo.replace(/^(ORD-\d{8}-\d{3,})-\d+$/, "$1");
+
 export const STATUS_FLOW: OrderStatus[] = ["PENDING", "PAID", "PROCESSING", "COMPLETED"];

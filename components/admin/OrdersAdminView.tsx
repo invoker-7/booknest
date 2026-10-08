@@ -149,7 +149,15 @@ export default function OrdersAdminView({ orders, total, page, pageSize, filter,
               {orders.map((o) => (
                 <tr key={o.order_no}>
                   <td className="mono">{o.order_no}</td>
-                  <td><Link href={`/admin/products/${o.book_id}`} className="linkbtn">{o.title}</Link></td>
+                  <td>
+                    <ul className="order-items">
+                      {o.items.map((item) => (
+                        <li key={item.book_id}>
+                          <Link href={`/admin/products/${item.book_id}`} className="linkbtn">{item.title}</Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </td>
                   <td>
                     {o.customer_name}
                     <span className="sub">{o.customer_email}</span>

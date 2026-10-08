@@ -1,5 +1,6 @@
 import { createOrder, payOrder, startCheckout } from "@/lib/apiClient";
-import { listLocalOrders, rememberOrder, saveReceipt } from "@/lib/localOrders";
+import { cartNoOf } from "@/lib/format";
+import { forgetOrder, listLocalOrders, rememberOrder, saveReceipt } from "@/lib/localOrders";
 import type { CartItem, Receipt, ReceiptLine } from "@/lib/types";
 
 export interface Buyer {
@@ -50,62 +51,84 @@ function buildReceipt(buyer: Buyer, lines: ReceiptLine[], awaiting: boolean): Re
   return receipt;
 }
 
+/** คำสั่งซื้อที่ยังไม่ชำระบนอุปกรณ์นี้ ซึ่งมีสินค้าตรงกับตะกร้านี้พอดี — กดลองใหม่จะไม่เกิดคำสั่งซื้อซ้ำ */
+function findOpenCart(items: CartItem[], buyer: Buyer): Map<string, string> | null {
+  const pending = listLocalOrders().filter((o) => o.status === "PENDING" && o.email === buyer.email && o.bookId);
+  const first = pending.find((o) => o.bookId === items[0]?.id);
+  if (!first) return null;
+  const lines = pending.filter((o) => cartNoOf(o.orderNo) === cartNoOf(first.orderNo));
+  const sameItems = lines.length === items.length && items.every((p) => lines.some((o) => o.bookId === p.id));
+  return sameItems ? new Map(lines.map((o) => [o.bookId as string, o.orderNo])) : null;
+}
+
+/** สร้างคำสั่งซื้อใบเดียวสำหรับทั้งตะกร้า แล้วจำไว้ในเบราว์เซอร์ */
+async function createCart(items: CartItem[], buyer: Buyer): Promise<Map<string, string>> {
+  const { orders } = await createOrder({ bookIds: items.map((p) => p.id), ...buyer });
+  const orderNos = new Map(orders.map((o) => [o.bookId, o.orderNo]));
+  for (const p of items) {
+    const orderNo = orderNos.get(p.id);
+    if (!orderNo) throw new Error("missing_order");
+    rememberOrder({
+      orderNo,
+      ...buyer,
+      bookId: p.id,
+      title: p.title_th,
+      title_th: p.title_th,
+      title_en: p.title_en,
+      kind: p.kind,
+      cover: p.cover,
+      version: p.version,
+      amount: p.price,
+      status: "PENDING",
+    });
+  }
+  return orderNos;
+}
+
 /**
  * ซื้อสินค้าทั้งตะกร้าด้วยการกดชำระครั้งเดียว
  *
- * backend รับคำสั่งซื้อทีละสินค้า จึงสร้างคำสั่งซื้อหนึ่งรายการต่อสินค้าหนึ่งชิ้น
- * แล้วรวมเป็นใบเสร็จเดียว จ่ายยอดรวมครั้งเดียวด้วย QR พร้อมเพย์
+ * หนึ่งตะกร้า = หนึ่งคำสั่งซื้อ: เลขคำสั่งซื้อเดียว ยอดรวมเดียว จ่ายครั้งเดียวด้วย QR พร้อมเพย์
+ * (ข้างในคำสั่งซื้อมีแถวละหนึ่งสินค้า เพราะไฟล์และสิทธิ์ดาวน์โหลดเป็นของแต่ละชิ้น)
  * ทุกขั้นถูกจำไว้ใน localStorage ทันที
- * เรียกซ้ำได้อย่างปลอดภัย: คำสั่งซื้อที่ยังไม่ชำระของสินค้าเดิมจะถูกนำกลับมาใช้
+ * เรียกซ้ำได้อย่างปลอดภัย: คำสั่งซื้อที่ยังไม่ชำระของตะกร้าเดิมจะถูกนำกลับมาใช้
  */
 export async function purchase(
   items: CartItem[],
   buyer: Buyer,
   onPhase: (phase: PurchasePhase) => void = () => {}
 ): Promise<Receipt> {
-  const orderNos = new Map<string, string>();
   let touched = false;
 
   try {
     // 1) สร้างคำสั่งซื้อ (ราคาอ่านจากฐานข้อมูลฝั่ง server เสมอ)
     onPhase("create");
-    const known = listLocalOrders();
-    for (const p of items) {
-      const open = known.find(
-        (o) => o.bookId === p.id && o.status === "PENDING" && o.email === buyer.email
-      );
-      if (open) {
-        orderNos.set(p.id, open.orderNo);
-        touched = true;
-        continue;
-      }
-      const { orderNo } = await createOrder({ bookId: p.id, ...buyer });
-      orderNos.set(p.id, orderNo);
-      touched = true;
-      rememberOrder({
-        orderNo,
-        ...buyer,
-        bookId: p.id,
-        title: p.title_th,
-        title_th: p.title_th,
-        title_en: p.title_en,
-        kind: p.kind,
-        cover: p.cover,
-        version: p.version,
-        amount: p.price,
-        status: "PENDING",
-      });
-    }
+    const reused = findOpenCart(items, buyer);
+    let orderNos = reused ?? (await createCart(items, buyer));
+    touched = true;
 
     // 2) ชำระเงิน
     onPhase("charge");
-    const ordered = items.map((p) => {
-      const orderNo = orderNos.get(p.id);
-      if (!orderNo) throw new Error("missing_order");
-      return { p, orderNo };
-    });
+    const lineUp = () =>
+      items.map((p) => {
+        const orderNo = orderNos.get(p.id);
+        if (!orderNo) throw new Error("missing_order");
+        return { p, orderNo };
+      });
+    let ordered = lineUp();
 
-    const checkout = await startCheckout(ordered.map((o) => o.orderNo));
+    let checkout;
+    try {
+      checkout = await startCheckout(ordered.map((o) => o.orderNo));
+    } catch (error) {
+      // คำสั่งซื้อที่จำไว้ไม่อยู่บน server แล้ว (เช่น ร้านลบไป) หรือจ่ายไปแล้ว: ออกคำสั่งซื้อใหม่ให้ตะกร้านี้
+      const stale = error instanceof Error && (error.message === "order_not_found" || error.message === "already_paid");
+      if (!reused || !stale) throw error;
+      for (const orderNo of reused.values()) forgetOrder(orderNo);
+      orderNos = await createCart(items, buyer);
+      ordered = lineUp();
+      checkout = await startCheckout(ordered.map((o) => o.orderNo));
+    }
     if (checkout.mode !== "mock") {
       // จ่ายด้วย QR พร้อมเพย์ (หรือสินค้าฟรีที่ server จัดส่งให้แล้ว):
       // เก็บใบเสร็จไว้ก่อน หน้าใบเสร็จจะถาม server เองว่าร้านยืนยันรับเงินแล้วจริงไหม

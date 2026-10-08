@@ -6,14 +6,18 @@ import type { AccountOrder, EmailStatus, LookupOrder, OrderStatus, SessionUser }
  */
 
 export interface CreateOrderInput {
-  bookId: string;
+  /** สินค้าทั้งตะกร้า — ได้คำสั่งซื้อใบเดียว */
+  bookIds: string[];
   name: string;
   email: string;
 }
 
 export interface CreateOrderResult {
+  /** เลขคำสั่งซื้อของทั้งตะกร้า */
   orderNo: string;
   status: OrderStatus;
+  /** เลขของแต่ละชิ้นในคำสั่งซื้อ (ใช้ชำระเงินและดาวน์โหลดรายชิ้น) */
+  orders: { orderNo: string; bookId: string }[];
 }
 
 export interface PayOrderResult {
@@ -38,7 +42,7 @@ export async function sendJson<T>(url: string, body?: unknown, method = "POST"):
 
 const postJson = sendJson;
 
-/** สร้างคำสั่งซื้อหนึ่งรายการ (ราคาอ่านจากฐานข้อมูลฝั่ง server เสมอ) */
+/** สร้างคำสั่งซื้อใบเดียวสำหรับทั้งตะกร้า (ราคาอ่านจากฐานข้อมูลฝั่ง server เสมอ) */
 export const createOrder = (input: CreateOrderInput) =>
   postJson<CreateOrderResult>("/api/orders", input);
 

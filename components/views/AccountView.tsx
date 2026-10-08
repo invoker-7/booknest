@@ -8,7 +8,7 @@ import { useLang } from "@/components/LangProvider";
 import { useStore } from "@/components/StoreProvider";
 import { Arrow } from "@/components/Icons";
 import { Button, LinkButton, StatusTag } from "@/components/ui";
-import { fmtDate, money, pick } from "@/lib/format";
+import { cartNoOf, fmtDate, money, pick } from "@/lib/format";
 
 /** บัญชีของฉัน — ข้อมูลสมาชิก + ประวัติคำสั่งซื้อของบัญชี */
 export default function AccountView() {
@@ -93,7 +93,7 @@ export default function AccountView() {
               <tbody>
                 {mine.map((o) => (
                   <tr key={o.orderNo}>
-                    <td className="mono">{o.orderNo}</td>
+                    <td className="mono">{cartNoOf(o.orderNo)}</td>
                     <td>
                       {o.bookId ? (
                         <Link href={`/product/${o.bookId}`} className="linkbtn">{pick(o, "title", lang) || o.title}</Link>

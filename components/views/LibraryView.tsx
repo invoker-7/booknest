@@ -10,7 +10,7 @@ import { Button, LinkButton, Empty, StatusTag, Notice, ProductTile } from "@/com
 import { checkOrder, lookupOrder } from "@/lib/apiClient";
 import { categoryOf } from "@/lib/catalog";
 import { openDownload } from "@/lib/download";
-import { fmtDate, isEmail, pick } from "@/lib/format";
+import { cartNoOf, fmtDate, isEmail, pick } from "@/lib/format";
 import { clearLocalOrders, forgetOrder, rememberOrder } from "@/lib/localOrders";
 import type { Category, LocalOrder, LookupOrder, Product } from "@/lib/types";
 
@@ -239,7 +239,7 @@ export default function LibraryView({ products }: LibraryViewProps) {
                       <div className="thumb"><ProductArt p={r} bare sizes="120px" /></div>
                       <div>
                         <strong>{r.title}</strong>
-                        <span className="mono">{r.o.orderNo}</span>
+                        <span className="mono">{cartNoOf(r.o.orderNo)}</span>
                       </div>
                     </div>
                   </td>
@@ -268,7 +268,7 @@ export default function LibraryView({ products }: LibraryViewProps) {
                   <div>
                     {r.o.status && <StatusTag status={r.o.status} slip={r.o.slip} />}
                     <strong>{r.title}</strong>
-                    <span className="mono">{r.o.orderNo}</span>
+                    <span className="mono">{cartNoOf(r.o.orderNo)}</span>
                   </div>
                 </div>
                 <dl>

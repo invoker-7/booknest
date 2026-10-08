@@ -9,9 +9,10 @@ const FROM = process.env.EMAIL_FROM || SMTP_USER;
 export interface DownloadEmail {
   to: string;
   name: string;
+  /** เลขคำสั่งซื้อ (ทั้งตะกร้า) */
   orderNo: string;
-  bookTitle: string;
-  downloadUrl: string | null;
+  /** สินค้าในคำสั่งซื้อ — downloadUrl เป็น null เมื่อสร้างลิงก์ของชิ้นนั้นไม่ได้ */
+  items: { title: string; downloadUrl: string | null }[];
 }
 
 export interface EmailResult {
@@ -37,13 +38,7 @@ function getTransporter(): Transporter {
  * ถ้ายังไม่ได้ตั้ง SMTP_USER หรือ SMTP_PASS จะคืน "mock" โดยไม่ส่งอะไร
  * (ผู้ซื้อยังดาวน์โหลดได้จากหน้าเว็บ หน้าผลลัพธ์จะแจ้งว่าไม่ได้ส่งอีเมล)
  */
-export async function sendDownloadEmail({
-  to,
-  name,
-  orderNo,
-  bookTitle,
-  downloadUrl,
-}: DownloadEmail): Promise<EmailResult> {
+export async function sendDownloadEmail({ to, name, orderNo, items }: DownloadEmail): Promise<EmailResult> {
   if (!SMTP_USER || !SMTP_PASS || !FROM) {
     return {
       status: "mock",
@@ -55,8 +50,8 @@ export async function sendDownloadEmail({
     await getTransporter().sendMail({
       from: FROM,
       to,
-      subject: `VECTOR — ลิงก์ดาวน์โหลด ${bookTitle} (${orderNo})`,
-      html: emailHtml({ name, orderNo, bookTitle, downloadUrl }),
+      subject: `VECTOR — ลิงก์ดาวน์โหลด ${items.length === 1 ? items[0]?.title : `${items.length} รายการ`} (${orderNo})`,
+      html: emailHtml({ name, orderNo, items }),
     });
 
     return { status: "sent", note: null };
@@ -170,20 +165,33 @@ function otpHtml({ name, code, minutes }: Omit<OtpEmail, "to">): string {
 </body></html>`;
 }
 
-function emailHtml({ name, orderNo, bookTitle, downloadUrl }: Omit<DownloadEmail, "to">): string {
-  const linkBlock = downloadUrl
-    ? `<a href="${escapeHtml(downloadUrl)}"
-          style="display:inline-block;background:#1F3A68;color:#ffffff;text-decoration:none;
-                 padding:14px 26px;font-weight:600;font-size:13px;letter-spacing:.1em">
-         ดาวน์โหลดสินค้า / DOWNLOAD
-       </a>
-       <p style="margin:16px 0 0;font-size:13px;color:#5C6066;line-height:1.6">
-         ลิงก์นี้มีอายุ 24 ชั่วโมง ขอลิงก์ใหม่ได้จากหน้า "คลังของฉัน"<br>
-         This link expires in 24 hours. Request a new one from your Library.
+function emailHtml({ name, orderNo, items }: Omit<DownloadEmail, "to">): string {
+  // หนึ่งกล่องต่อสินค้าหนึ่งชิ้น: ชื่อสินค้า + ปุ่มดาวน์โหลดของชิ้นนั้น
+  const itemBlocks = items
+    .map(({ title, downloadUrl }) => {
+      const action = downloadUrl
+        ? `<a href="${escapeHtml(downloadUrl)}"
+              style="display:inline-block;background:#1F3A68;color:#ffffff;text-decoration:none;
+                     padding:12px 22px;font-weight:600;font-size:13px;letter-spacing:.1em">
+             ดาวน์โหลด / DOWNLOAD
+           </a>`
+        : `<p style="margin:0;font-size:14px;color:#B3261E;line-height:1.6">
+             ยังสร้างลิงก์ดาวน์โหลดไม่ได้ กรุณาเปิดหน้า "คลังของฉัน" เพื่อขอลิงก์อีกครั้ง
+           </p>`;
+      return `<div style="background:#F4F3EF;border:1px solid #D9D9D5;padding:16px;margin-bottom:12px">
+      <div style="font-size:12px;color:#5C6066;letter-spacing:.08em;margin-bottom:4px">PRODUCT</div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:14px">${escapeHtml(title)}</div>
+      ${action}
+    </div>`;
+    })
+    .join("\n");
+
+  const linkNote = items.some((item) => item.downloadUrl)
+    ? `<p style="margin:12px 0 0;font-size:13px;color:#5C6066;line-height:1.6">
+         ลิงก์มีอายุ 24 ชั่วโมง ขอลิงก์ใหม่ได้จากหน้า "คลังของฉัน"<br>
+         Links expire in 24 hours. Request new ones from your Library.
        </p>`
-    : `<p style="margin:0;font-size:14px;color:#B3261E;line-height:1.6">
-         ยังสร้างลิงก์ดาวน์โหลดไม่ได้ กรุณาเปิดหน้า "คลังของฉัน" เพื่อขอลิงก์อีกครั้ง
-       </p>`;
+    : "";
 
   return `<!doctype html>
 <html lang="th"><body style="margin:0;padding:24px;background:#F4F3EF;
@@ -200,12 +208,8 @@ function emailHtml({ name, orderNo, bookTitle, downloadUrl }: Omit<DownloadEmail
       คำสั่งซื้อ <strong>${escapeHtml(orderNo)}</strong> ชำระเงินเรียบร้อยแล้ว
     </p>
 
-    <div style="background:#F4F3EF;border:1px solid #D9D9D5;padding:16px;margin-bottom:24px">
-      <div style="font-size:12px;color:#5C6066;letter-spacing:.08em;margin-bottom:4px">PRODUCT</div>
-      <div style="font-size:15px;font-weight:600">${escapeHtml(bookTitle)}</div>
-    </div>
-
-    ${linkBlock}
+    ${itemBlocks}
+    ${linkNote}
 
     <hr style="border:none;border-top:1px solid #D9D9D5;margin:26px 0">
     <p style="margin:0;font-size:12px;color:#5C6066;line-height:1.7">

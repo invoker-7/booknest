@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useLang } from "@/components/LangProvider";
 import { Mark, Print } from "@/components/Icons";
 import { Button, LinkButton, Empty } from "@/components/ui";
-import { fmtDate, fmtTime, money, pick } from "@/lib/format";
+import { cartNoOf, fmtDate, fmtTime, money, pick } from "@/lib/format";
 import { findLocalOrder, findReceipt, findReceiptByOrder } from "@/lib/localOrders";
 import type { Receipt } from "@/lib/types";
 
@@ -65,7 +65,7 @@ export default function ReceiptView({ id }: { id: string }) {
             {r.orders.map((o) => (
               <tr key={o.orderNo}>
                 <td>{pick(o, "title", lang)}{o.version ? <span className="muted mono"> · V{o.version}</span> : null}</td>
-                <td className="mono">{o.orderNo}</td>
+                <td className="mono">{cartNoOf(o.orderNo)}</td>
                 <td className="num">{money(o.amount, lang)}</td>
               </tr>
             ))}

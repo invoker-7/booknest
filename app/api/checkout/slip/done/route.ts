@@ -3,6 +3,7 @@ import { normalizeOrderNo, readJsonBody } from "@/lib/api";
 import { adminEmails } from "@/lib/auth";
 import { sendSlipNotice } from "@/lib/email";
 import { MAX_CHECKOUT_ORDERS } from "@/lib/payments";
+import { cartNoOf } from "@/lib/format";
 import { fulfillOrders } from "@/lib/fulfill";
 import { isFirstFreshSlip, readSlip } from "@/lib/slips";
 import { isSlipVerifyEnabled, verifySlip } from "@/lib/slipVerify";
@@ -66,7 +67,7 @@ export async function POST(req: Request) {
     if (to.length > 0 && (await isFirstFreshSlip(first.order_no))) {
       await sendSlipNotice({
         to,
-        orderNos: open.map((o) => o.order_no),
+        orderNos: [...new Set(open.map((o) => cartNoOf(o.order_no)))],
         amount: total,
         customer: `${first.customer_name} <${first.customer_email}>`,
         link: `${new URL(req.url).origin}/admin/orders?filter=review`,

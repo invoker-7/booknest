@@ -8,7 +8,7 @@ import { Check, Download, Library, Print } from "@/components/Icons";
 import { Button, LinkButton, Steps, Notice, Empty } from "@/components/ui";
 import { categoryOf } from "@/lib/catalog";
 import { openDownload } from "@/lib/download";
-import { pick } from "@/lib/format";
+import { cartNoOf, pick } from "@/lib/format";
 import { lookupOrder } from "@/lib/apiClient";
 import { findReceipt, findReceiptByOrder, rememberOrder, saveReceipt } from "@/lib/localOrders";
 import type { BookRow, Receipt, SafeOrder } from "@/lib/types";
@@ -88,7 +88,7 @@ export function CompleteBody({ receipt, canDownload = true, shownEmail }: Comple
             <div className="thumb"><ProductArt p={o} bare sizes="120px" /></div>
             <div>
               <h2>{pick(o, "title", lang)}</h2>
-              <p className="mono">{o.orderNo}{o.version ? ` · V${o.version}` : ""}</p>
+              <p className="mono">{cartNoOf(o.orderNo)}{o.version ? ` · V${o.version}` : ""}</p>
               {failed === o.orderNo && many && <p className="err" role="alert">{t("downloadFail")}</p>}
             </div>
             <div>

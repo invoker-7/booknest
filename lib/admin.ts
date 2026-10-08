@@ -47,8 +47,23 @@ interface RawStats extends Totals {
   top: AdminStats["top"];
 }
 
-interface OrderJoin {
+/** หนึ่งแถวของ view order_carts (supabase/cart.sql) = หนึ่งคำสั่งซื้อ */
+interface CartRow {
+  cart_no: string;
+  status: OrderStatus;
+  amount: number;
+  customer_name: string;
+  customer_email: string;
+  created_at: string;
+  paid_at: string | null;
+}
+
+const CART_COLUMNS = "cart_no, status, amount, customer_name, customer_email, created_at, paid_at";
+
+/** หนึ่งแถวของตาราง orders = สินค้าหนึ่งชิ้นในคำสั่งซื้อ */
+interface LineRow {
   order_no: string;
+  cart_no: string | null;
   status: OrderStatus;
   amount: number;
   customer_name: string;
@@ -59,10 +74,35 @@ interface OrderJoin {
   book: { title_th: string } | null;
 }
 
-const ORDER_COLUMNS =
-  "order_no, status, amount, customer_name, customer_email, created_at, paid_at, book_id, book:books(title_th)";
+const LINE_COLUMNS =
+  "order_no, cart_no, status, amount, customer_name, customer_email, created_at, paid_at, book_id, book:books(title_th)";
 
-const toAdminOrder = ({ book, ...o }: OrderJoin): AdminOrder => ({ ...o, title: book?.title_th || o.book_id });
+// เลขคำสั่งซื้อมีแค่ตัวอักษร ตัวเลข และขีด — กรองไว้ก่อนใส่ใน filter ของ PostgREST
+const safeNos = (nos: string[]): string[] => nos.filter((no) => /^[A-Z0-9-]+$/.test(no));
+
+/** เติมรายการสินค้าให้คำสั่งซื้อชุดนี้ (หนึ่งคำขอ ไม่ว่าจะกี่คำสั่งซื้อ) */
+async function withItems(carts: CartRow[]): Promise<AdminOrder[]> {
+  const nos = safeNos(carts.map((c) => c.cart_no));
+  if (nos.length === 0) return [];
+  const list = nos.join(",");
+  const { data, error } = await supabaseAdmin()
+    .from("orders")
+    .select("order_no, cart_no, amount, book_id, book:books(title_th)")
+    .or(`cart_no.in.(${list}),order_no.in.(${list})`)
+    .order("order_no")
+    .retry(false)
+    .returns<Pick<LineRow, "order_no" | "cart_no" | "amount" | "book_id" | "book">[]>();
+  if (error) throw new Error(`order items: ${error.message}`);
+
+  const items = new Map<string, AdminOrder["items"]>();
+  for (const line of data ?? []) {
+    const key = line.cart_no || line.order_no;
+    const group = items.get(key) ?? [];
+    group.push({ book_id: line.book_id, title: line.book?.title_th || line.book_id, amount: line.amount });
+    items.set(key, group);
+  }
+  return carts.map(({ cart_no, ...cart }) => ({ ...cart, order_no: cart_no, items: items.get(cart_no) ?? [] }));
+}
 
 /** เปลี่ยนแปลงเป็น % เทียบช่วงก่อนหน้า — null เมื่อช่วงก่อนหน้าเป็น 0 */
 const change = (cur: number, prev: number): number | null =>
@@ -73,7 +113,7 @@ export async function loadStats(days = 30): Promise<AdminStats> {
   // ยอดรวมคำนวณในฐานข้อมูล (supabase/admin.sql) + คำสั่งซื้อล่าสุด ยิงพร้อมกัน
   const [stats, recent] = await Promise.all([
     db.rpc("admin_stats", { days }).retry(false),
-    db.from("orders").select(ORDER_COLUMNS).order("created_at", { ascending: false }).limit(8).retry(false).returns<OrderJoin[]>(),
+    db.from("order_carts").select(CART_COLUMNS).order("created_at", { ascending: false }).limit(8).retry(false).returns<CartRow[]>(),
   ]);
   if (stats.error) throw new Error(`admin_stats: ${stats.error.message}`);
   if (recent.error) throw new Error(`recent orders: ${recent.error.message}`);
@@ -90,7 +130,7 @@ export async function loadStats(days = 30): Promise<AdminStats> {
     customersChange: change(raw.cur.customers, raw.prev.customers),
     daily: raw.daily,
     top: raw.top,
-    recent: (recent.data ?? []).map(toAdminOrder),
+    recent: await withItems(recent.data ?? []),
   };
 }
 
@@ -101,14 +141,13 @@ export type ReportPeriod = (typeof REPORT_PERIODS)[number];
 const ACTIVITY_LIMIT = 40;
 
 interface ActivityOrder {
-  order_no: string;
+  cart_no: string;
   amount: number;
   customer_email: string;
   created_at: string;
   paid_at: string | null;
   delivered_at: string | null;
-  email_sent: boolean | null;
-  email_note: string | null;
+  email_failed: boolean | null;
 }
 
 /**
@@ -118,11 +157,11 @@ interface ActivityOrder {
 function toActivity(orders: ActivityOrder[], members: { email: string; created_at: string | null }[]): ActivityEvent[] {
   const events: ActivityEvent[] = [];
   for (const o of orders) {
-    const base = { ref: o.order_no, who: o.customer_email, amount: o.amount };
+    const base = { ref: o.cart_no, who: o.customer_email, amount: o.amount };
     events.push({ ...base, at: o.created_at, kind: "order_created" });
     if (o.paid_at) events.push({ ...base, at: o.paid_at, kind: "order_paid" });
     if (o.delivered_at) events.push({ ...base, at: o.delivered_at, kind: "order_delivered" });
-    else if (o.paid_at && o.email_sent === false && o.email_note) events.push({ ...base, at: o.paid_at, kind: "email_failed" });
+    else if (o.paid_at && o.email_failed) events.push({ ...base, at: o.paid_at, kind: "email_failed" });
   }
   for (const m of members) {
     if (m.created_at) events.push({ at: m.created_at, kind: "member_joined", ref: null, who: m.email, amount: null });
@@ -135,8 +174,8 @@ export async function loadReport(days: ReportPeriod): Promise<AdminReport> {
   const [stats, orders, members] = await Promise.all([
     db.rpc("admin_stats", { days }).retry(false),
     db
-      .from("orders")
-      .select("order_no, amount, customer_email, created_at, paid_at, delivered_at, email_sent, email_note")
+      .from("order_carts")
+      .select("cart_no, amount, customer_email, created_at, paid_at, delivered_at, email_failed")
       .order("created_at", { ascending: false })
       .limit(ACTIVITY_LIMIT)
       .retry(false)
@@ -203,10 +242,11 @@ export async function loadTodo(): Promise<AdminTodo> {
       if (error) throw new Error(`todo: ${error.message}`);
       return n ?? 0;
     });
-  const head = () => db.from("orders").select("id", { count: "exact", head: true });
+  // นับเป็นคำสั่งซื้อ (ตะกร้า) — สลิปเก็บในโฟลเดอร์ชื่อเลขคำสั่งซื้อ ซึ่งคือแถวแรกของตะกร้า
+  const head = () => db.from("order_carts").select("cart_no", { count: "exact", head: true });
 
   const [review, pending, undelivered] = await Promise.all([
-    withSlip.length ? count(head().eq("status", "PENDING").in("order_no", withSlip)) : 0,
+    withSlip.length ? count(head().eq("status", "PENDING").in("cart_no", withSlip)) : 0,
     count(head().eq("status", "PENDING")),
     count(head().eq("status", "PAID")),
   ]);
@@ -220,56 +260,84 @@ export async function listOrders(page = 1, filter: OrderFilter = "all", search =
   const from = (Math.max(page, 1) - 1) * ORDER_PAGE_SIZE;
   // รายชื่อคำสั่งซื้อที่มีสลิป: คำขอเดียว ใช้ทั้งกรองและติดป้ายในตาราง
   const withSlip = new Set(await slipOrderNos());
-  let query = supabaseAdmin().from("orders").select(ORDER_COLUMNS, { count: "exact" });
+  let query = supabaseAdmin().from("order_carts").select(CART_COLUMNS, { count: "exact" });
 
   if (filter === "undelivered") query = query.eq("status", "PAID");
   if (filter === "review" || filter === "unpaid") {
     query = query.eq("status", "PENDING");
+    const slipNos = safeNos([...withSlip]);
     if (filter === "review") {
-      if (withSlip.size === 0) return { orders: [], total: 0 };
-      query = query.in("order_no", [...withSlip]);
-    } else if (withSlip.size) {
-      query = query.not("order_no", "in", `(${[...withSlip].map((no) => `"${no}"`).join(",")})`);
+      if (slipNos.length === 0) return { orders: [], total: 0 };
+      query = query.in("cart_no", slipNos);
+    } else if (slipNos.length) {
+      query = query.not("cart_no", "in", `(${slipNos.join(",")})`);
     }
   }
 
   const term = searchTerm(search);
-  if (term) query = query.or(`order_no.ilike.%${term}%,customer_email.ilike.%${term}%,customer_name.ilike.%${term}%`);
+  if (term) query = query.or(`cart_no.ilike.%${term}%,customer_email.ilike.%${term}%,customer_name.ilike.%${term}%`);
 
   const { data, error, count } = await query
     .order("created_at", { ascending: false })
     .range(from, from + ORDER_PAGE_SIZE - 1)
     .retry(false)
-    .returns<OrderJoin[]>();
+    .returns<CartRow[]>();
   if (error) throw new Error(`orders: ${error.message}`);
-  const orders = (data ?? []).map(toAdminOrder);
+  const orders = await withItems(data ?? []);
   return { orders: orders.map((o) => ({ ...o, slip: o.status === "PENDING" && withSlip.has(o.order_no) })), total: count ?? 0 };
 }
 
-/** ลบคำสั่งซื้อถาวร พร้อมสลิปที่แนบไว้ */
-export async function removeOrder(orderNo: string): Promise<"deleted" | "not_found" | "failed"> {
-  const { data, error } = await supabaseAdmin().from("orders").delete().eq("order_no", orderNo).select("order_no");
+/** ลบคำสั่งซื้อถาวรทั้งใบ (ทุกชิ้นในตะกร้า) พร้อมสลิปที่แนบไว้ */
+export async function removeOrder(cartNo: string): Promise<"deleted" | "not_found" | "failed"> {
+  const [no] = safeNos([cartNo]);
+  if (!no) return "not_found";
+  const { data, error } = await supabaseAdmin()
+    .from("orders")
+    .delete()
+    .or(`cart_no.eq.${no},order_no.eq.${no}`)
+    .select("order_no")
+    .returns<{ order_no: string }[]>();
   if (error) {
     console.error("removeOrder:", error.message);
     return "failed";
   }
   if (!data?.length) return "not_found";
-  await removeSlips(orderNo);
+  await Promise.all(data.map((line) => removeSlips(line.order_no)));
   return "deleted";
 }
 
-/** คำสั่งซื้อทั้งหมดสำหรับ export (ดึงทีละหน้าจนครบ) */
-export async function allOrders(max = 50_000): Promise<AdminOrder[]> {
-  const out: AdminOrder[] = [];
+/** หนึ่งบรรทัดของรายงานยอดขาย = สินค้าหนึ่งชิ้นที่ขายได้ (order_no คือเลขคำสั่งซื้อของตะกร้า) */
+export interface SalesLine {
+  order_no: string;
+  created_at: string;
+  paid_at: string | null;
+  status: OrderStatus;
+  book_id: string;
+  title: string;
+  customer_name: string;
+  customer_email: string;
+  amount: number;
+}
+
+/** ยอดขายทั้งหมดสำหรับ export ทีละชิ้นสินค้า (ดึงทีละหน้าจนครบ) */
+export async function allOrders(max = 50_000): Promise<SalesLine[]> {
+  const out: SalesLine[] = [];
   for (let from = 0; from < max; from += PAGE) {
     const { data, error } = await supabaseAdmin()
       .from("orders")
-      .select(ORDER_COLUMNS)
+      .select(LINE_COLUMNS)
       .order("created_at", { ascending: false })
+      .order("order_no")
       .range(from, from + PAGE - 1)
-      .returns<OrderJoin[]>();
+      .returns<LineRow[]>();
     if (error) throw new Error(`orders: ${error.message}`);
-    out.push(...(data ?? []).map(toAdminOrder));
+    out.push(
+      ...(data ?? []).map(({ book, cart_no, ...line }) => ({
+        ...line,
+        order_no: cart_no || line.order_no,
+        title: book?.title_th || line.book_id,
+      }))
+    );
     if (!data || data.length < PAGE) break;
   }
   return out;

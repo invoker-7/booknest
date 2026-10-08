@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/auth";
 import { normalizeOrderNo } from "@/lib/api";
-import { loadOrders, redeliverOrder } from "@/lib/fulfill";
+import { loadCart, redeliver } from "@/lib/fulfill";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,11 +15,11 @@ export async function POST(_req: Request, { params }: { params: { orderNo: strin
 
   const orderNo = normalizeOrderNo(params.orderNo);
   try {
-    const [order] = await loadOrders([orderNo]);
-    if (!order) return NextResponse.json({ error: "not_found" }, { status: 404 });
-    if (order.status === "PENDING") return NextResponse.json({ error: "not_paid" }, { status: 409 });
+    const lines = await loadCart(orderNo);
+    if (lines.length === 0) return NextResponse.json({ error: "not_found" }, { status: 404 });
+    if (lines.every((o) => o.status === "PENDING")) return NextResponse.json({ error: "not_paid" }, { status: 409 });
 
-    const result = await redeliverOrder(order);
+    const result = await redeliver(lines);
     if (result.emailStatus === "failed") return NextResponse.json({ error: "email_failed", ...result }, { status: 502 });
     return NextResponse.json({ orderNo, ...result });
   } catch (err) {

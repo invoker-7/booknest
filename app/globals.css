@@ -1132,6 +1132,7 @@ button.adm-back:disabled { opacity: .5; }
 .ppay-orders { font-size: 12px; margin-top: 8px; }
 @media (max-width: 760px) { .ppay { grid-template-columns: 1fr; gap: 16px; } }
 .adm-card .ltable .tag { white-space: nowrap; }
+.order-items { display: grid; gap: 4px; }
 .adm-count { margin-left: auto; min-width: 22px; height: 22px; padding: 0 6px; display: inline-grid; place-items: center; background: #D93025; color: #fff; font-size: 12px; font-weight: 600; border-radius: 11px; font-variant-numeric: tabular-nums; }
 .tabcount { margin-left: 8px; min-width: 20px; padding: 1px 6px; display: inline-block; text-align: center; background: var(--sunk); color: var(--ink-2); font-size: 11.5px; font-weight: 600; border-radius: 10px; }
 .tabcount.hot { background: var(--red); color: #fff; }

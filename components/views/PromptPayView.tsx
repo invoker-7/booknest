@@ -6,7 +6,7 @@ import { useLang } from "@/components/LangProvider";
 import { Check, Spinner, Upload } from "@/components/Icons";
 import { Button, Empty, LinkButton, Notice, Steps } from "@/components/ui";
 import { fetchPromptPay, uploadSlip, type PromptPayState } from "@/lib/apiClient";
-import { IMAGE_EXTENSIONS, MAX_IMAGE_BYTES, money } from "@/lib/format";
+import { cartNoOf, IMAGE_EXTENSIONS, MAX_IMAGE_BYTES, money } from "@/lib/format";
 import type { TKey } from "@/lib/i18n";
 
 // ถามซ้ำว่าร้านยืนยันรับเงินแล้วหรือยัง — หยุดเมื่อแท็บไม่ได้เปิดดูอยู่
@@ -122,7 +122,8 @@ export default function PromptPayView() {
             <p className={`ppay-wait${hasSlip ? "" : " idle"}`} role="status">
               {hasSlip ? <><Spinner size={16} /> {t("ppWaiting")}</> : t("ppWaitSlip")}
             </p>
-            <p className="mono muted ppay-orders">{state.orders.map((o) => o.orderNo).join(" · ")}</p>
+            {/* หนึ่งตะกร้า = หนึ่งคำสั่งซื้อ: แสดงเลขเดียว (คำสั่งซื้อเก่าที่แยกใบจะเห็นครบทุกเลข) */}
+            <p className="mono muted ppay-orders">{[...new Set(state.orders.map((o) => cartNoOf(o.orderNo)))].join(" · ")}</p>
           </div>
           <div className="panel">
             <h2 className="ppay-h">{t("ppSlipTitle")}</h2>

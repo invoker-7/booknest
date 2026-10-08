@@ -14,7 +14,7 @@ VECTOR เป็นร้านขายสินค้าดิจิทัล 
 
 - **หน้าแรก / แคตตาล็อก:** ค้นหา กรองตามประเภท แพลตฟอร์ม ราคา คะแนน เรียงลำดับ และสลับมุมมองตาราง/รายการ (บนมือถือตัวกรองเป็น bottom sheet)
 - **หน้าสินค้า:** จัดแบบเอกสารสเปก (รูปแบบไฟล์ เวอร์ชัน ไลเซนส์ การจัดส่ง) พร้อมสิ่งที่ได้รับ รีวิว และ FAQ
-- **ตะกร้า + Checkout:** ซื้อหลายชิ้นได้ด้วยการกดชำระครั้งเดียว ระบบสร้างคำสั่งซื้อ `ORD-YYYYMMDD-001` หนึ่งรายการต่อสินค้าหนึ่งชิ้น แล้วรวมเป็นใบเสร็จเดียว
+- **ตะกร้า + Checkout:** ซื้อหลายชิ้นได้ด้วยการกดชำระครั้งเดียว หนึ่งตะกร้าเป็นคำสั่งซื้อใบเดียว `ORD-YYYYMMDD-001` ยอดรวมเดียว สลิปใบเดียว อีเมลฉบับเดียวที่มีลิงก์ดาวน์โหลดของทุกชิ้น และเป็นแถวเดียวในหลังบ้าน
 - **ชำระเงินด้วย QR พร้อมเพย์ + แนบสลิป:** ร้านสร้าง QR ที่ระบุยอดไว้แล้วจากเบอร์พร้อมเพย์ของร้าน ผู้ซื้อสแกนจ่าย (เงินเข้าบัญชีของร้านโดยตรง) แล้วแนบรูปสลิป สถานะจะเป็น "รอร้านตรวจสลิป" ซึ่งผู้ซื้อเห็นได้ในคลังและหน้าบัญชี เจ้าของร้านเปิดดูสลิปที่ `/admin/orders` แล้วกด "ยืนยันรับเงิน" สถานะจึงเปลี่ยน `PENDING → PAID → COMPLETED` และส่งไฟล์ให้ สลิปเก็บใน bucket private `payment-slips` (ระบบสร้างให้เอง)
 - **ส่งไฟล์:** สร้าง signed URL จาก bucket แบบ private (มีอายุ 24 ชม.) แล้วส่งทางอีเมลผ่าน Gmail SMTP
 - **คลังของฉัน:** สินค้าที่ซื้อแล้ว ดาวน์โหลดซ้ำ ชำระคำสั่งซื้อที่ค้าง และค้นหาคำสั่งซื้อเดิมด้วยเลขคำสั่งซื้อคู่กับอีเมล
@@ -119,7 +119,7 @@ supabase/*.sql          ตาราง, function และ RLS
 ## เริ่มต้นใช้งาน
 
 1. **สร้างโปรเจกต์ Supabase**
-   - ไปที่ SQL Editor แล้วรันตามลำดับ: [supabase/schema.sql](supabase/schema.sql) → [supabase/marketplace.sql](supabase/marketplace.sql) → [supabase/admin.sql](supabase/admin.sql)
+   - ไปที่ SQL Editor แล้วรันตามลำดับ: [supabase/schema.sql](supabase/schema.sql) → [supabase/marketplace.sql](supabase/marketplace.sql) → [supabase/admin.sql](supabase/admin.sql) → [supabase/cart.sql](supabase/cart.sql)
    - `admin.sql` สร้าง bucket `ebooks` แบบ **private** ให้แล้ว ไฟล์สินค้าอัปโหลดผ่านหน้า `/admin/products`
    - Authentication → URL Configuration: ใส่ Site URL ของเว็บ และเพิ่ม `https://<โดเมน>/auth/callback` (กับ `http://localhost:3000/auth/callback`) ใน Redirect URLs
    - Authentication → Providers → Google: ใส่ Client ID / Secret จาก Google Cloud Console แล้วตั้ง `AUTH_GOOGLE_ENABLED=true` (ไม่ตั้งก็ยังเข้าสู่ระบบด้วยอีเมลได้)

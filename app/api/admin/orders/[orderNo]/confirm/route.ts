@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/auth";
 import { normalizeOrderNo } from "@/lib/api";
-import { fulfillOrder, loadOrders } from "@/lib/fulfill";
+import { fulfill, loadCart } from "@/lib/fulfill";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,9 +16,10 @@ export async function POST(_req: Request, { params }: { params: { orderNo: strin
 
   const orderNo = normalizeOrderNo(params.orderNo);
   try {
-    const [order] = await loadOrders([orderNo]);
-    if (!order) return NextResponse.json({ error: "not_found" }, { status: 404 });
-    return NextResponse.json({ orderNo, ...(await fulfillOrder(order)) });
+    // ทั้งคำสั่งซื้อ (ทุกชิ้นในตะกร้า) จ่ายด้วยการโอนครั้งเดียว จึงยืนยันและส่งไฟล์พร้อมกัน
+    const lines = await loadCart(orderNo);
+    if (lines.length === 0) return NextResponse.json({ error: "not_found" }, { status: 404 });
+    return NextResponse.json({ orderNo, ...(await fulfill(lines)) });
   } catch (err) {
     console.error("confirm payment:", err instanceof Error ? err.message : err);
     return NextResponse.json({ error: "confirm_failed" }, { status: 500 });
