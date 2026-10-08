@@ -8,22 +8,13 @@ import { useStore } from "@/components/StoreProvider";
 import { useRequireLogin } from "@/components/AuthProvider";
 import ProductArt from "@/components/ProductArt";
 import ProductGallery from "@/components/ProductGallery";
-import { Bookmark, Cart, Check, Lock, Star, Library } from "@/components/Icons";
+import ProductReviews from "@/components/ProductReviews";
+import { Bookmark, Cart, Check, Lock, Library } from "@/components/Icons";
 import { Button, LinkButton, Meta, Price, Rating, ProductTile, PreviewBanner, Notice } from "@/components/ui";
 import { FAQ, discountOf, stamp, imageOf } from "@/lib/catalog";
 import { pick } from "@/lib/format";
 import type { TKey } from "@/lib/i18n";
-import type { Product } from "@/lib/types";
-
-function Stars({ value }: { value: number }) {
-  return (
-    <span className="stars" aria-hidden="true">
-      {[1, 2, 3, 4, 5].map((n) => (
-        <Star key={n} size={16} filled={n <= Math.round(value)} className={n <= Math.round(value) ? "" : "off"} />
-      ))}
-    </span>
-  );
-}
+import type { Product, Review } from "@/lib/types";
 
 function Doc({ no, label, title, children }: { no: string; label: string; title: string; children: ReactNode }) {
   return (
@@ -66,10 +57,12 @@ interface ProductViewProps {
   related: Product[];
   /** URL ภาพตัวอย่างเนื้อหา (หน้าตัวอย่าง ภาพหน้าจอ) */
   previews: string[];
+  /** รีวิวจากผู้ซื้อ ใหม่สุดก่อน */
+  reviews: Review[];
   live: boolean;
 }
 
-export default function ProductView({ product: p, related, live, previews }: ProductViewProps) {
+export default function ProductView({ product: p, related, live, previews, reviews }: ProductViewProps) {
   const { t, lang } = useLang();
   const { ready, inCart, isSaved, addToCart, toggleSaved, owned, notify } = useStore();
   const requireLogin = useRequireLogin();
@@ -164,7 +157,7 @@ export default function ProductView({ product: p, related, live, previews }: Pro
             <p className="pd-short">{pick(p, "short", lang)}</p>
 
             <div className="pd-rating">
-              <Rating value={p.rating} count={p.reviews} />
+              <Rating value={reviews.length ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0} count={reviews.length} />
             </div>
 
             <div className="pd-pricebox">
@@ -204,22 +197,7 @@ export default function ProductView({ product: p, related, live, previews }: Pro
         </Doc>
 
         <Doc no="02" label="Reviews" title={t("reviewsTitle")}>
-          {p.reviews > 0 ? (
-            <>
-              <div className="rev-summary">
-                <span className="rev-big">{p.rating.toFixed(1)}</span>
-                <div>
-                  <Stars value={p.rating} />
-                  <p className="muted" style={{ marginTop: 6, fontSize: 14 }}>
-                    {t("reviewsBasis")} {p.reviews.toLocaleString("en-US")} {t("reviews")}
-                  </p>
-                </div>
-              </div>
-              <p className="muted" style={{ marginTop: 20, fontSize: 15 }}>{t("reviewsLiveNote")}</p>
-            </>
-          ) : (
-            <p className="muted">{t("noReviewsYet")}</p>
-          )}
+          <ProductReviews productId={p.id} reviews={reviews} />
         </Doc>
 
         <Doc no="03" label="FAQ" title={t("faq")}>

@@ -230,6 +230,34 @@ export interface Receipt {
   awaiting?: boolean;
 }
 
+/** หนึ่งแถวของตาราง articles */
+export interface ArticleRow {
+  slug: string;
+  type: ArticleType;
+  title_th: string;
+  title_en: string;
+  dek_th: string;
+  dek_en: string;
+  /** ข้อความธรรมดา เว้นบรรทัด = ขึ้นย่อหน้าใหม่ */
+  body_th: string;
+  body_en: string;
+  author: string;
+  product: string | null;
+  published: boolean;
+  published_at: string;
+  created_at: string;
+}
+
+/** รีวิวสินค้าหนึ่งรายการ (ไม่มีอีเมลหรือ user id ของผู้เขียน) */
+export interface Review {
+  id: string;
+  book_id: string;
+  name: string;
+  rating: number;
+  body: string;
+  created_at: string;
+}
+
 export interface Article {
   slug: string;
   type: ArticleType;

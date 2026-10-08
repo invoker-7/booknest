@@ -8,14 +8,15 @@ import ProductArt from "@/components/ProductArt";
 import { Arrow, ArrowLeft } from "@/components/Icons";
 import { SectionHead, TextLink, LinkButton, PreviewBanner, Empty } from "@/components/ui";
 import { CATEGORIES, sortProducts, stamp } from "@/lib/catalog";
-import { ARCHIVE } from "@/lib/archive";
 import { fmtDate, money, pick } from "@/lib/format";
-import type { Product } from "@/lib/types";
+import type { Article, Product } from "@/lib/types";
 
 interface HomeViewProps {
   products: Product[];
   creatorCount: number;
   live: boolean;
+  /** บทความล่าสุด (ไม่เกิน 3) — ไม่มีก็ไม่แสดงส่วนบทความ */
+  articles: Article[];
 }
 
 // ภาพประกอบหน้าแรกอยู่ใน public/home (สาธารณสมบัติ CC0 — ที่มาอยู่ใน public/home/CREDITS.md)
@@ -69,7 +70,7 @@ function Showcase({ items }: { items: Product[] }) {
   );
 }
 
-export default function HomeView({ products, creatorCount, live }: HomeViewProps) {
+export default function HomeView({ products, creatorCount, live, articles }: HomeViewProps) {
   const { t, lang } = useLang();
 
   const showcase = sortProducts(products, "rating").slice(0, SHOWCASE_SIZE);
@@ -81,7 +82,6 @@ export default function HomeView({ products, creatorCount, live }: HomeViewProps
     : "—";
 
   const counts = Object.fromEntries(CATEGORIES.map((c) => [c, products.filter((p) => p.category === c).length]));
-  const articles = ARCHIVE.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3);
 
   return (
     <>

@@ -6,7 +6,7 @@ import { LangProvider } from "@/components/LangProvider";
 import { StoreProvider } from "@/components/StoreProvider";
 import { AuthProvider } from "@/components/AuthProvider";
 import Shell from "@/components/Shell";
-import { ARCHIVE } from "@/lib/archive";
+import { hasArticles } from "@/lib/articles";
 
 // ฟอนต์ถูกดาวน์โหลดตอน build และเสิร์ฟจากโดเมนเดียวกัน (ไม่มี request ไป Google ตอนใช้งาน)
 const sans = IBM_Plex_Sans({
@@ -49,14 +49,16 @@ export const viewport: Viewport = {
   themeColor: "#F4F3EF",
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  // เมนู "คลังบทความ" แสดงเมื่อมีบทความที่เผยแพร่แล้ว
+  const hasArchive = await hasArticles();
   return (
     <html lang="th" className={`${sans.variable} ${thai.variable} ${mono.variable}`}>
       <body>
         <LangProvider>
           <StoreProvider>
             <AuthProvider>
-              <Shell hasArchive={ARCHIVE.length > 0}>{children}</Shell>
+              <Shell hasArchive={hasArchive}>{children}</Shell>
             </AuthProvider>
           </StoreProvider>
         </LangProvider>

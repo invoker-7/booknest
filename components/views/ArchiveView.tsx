@@ -5,16 +5,15 @@ import { useState } from "react";
 import { useLang } from "@/components/LangProvider";
 import { ArrowLeft } from "@/components/Icons";
 import { ProductRow, Empty } from "@/components/ui";
-import { ARCHIVE, ARCHIVE_TYPES } from "@/lib/archive";
+import { ARCHIVE_TYPES } from "@/lib/archive";
 import { fmtDate, pick } from "@/lib/format";
 import type { Article, ArticleType, Product } from "@/lib/types";
 
-const sorted = ARCHIVE.slice().sort((a, b) => b.date.localeCompare(a.date));
-
-export function ArchiveView() {
+/** articles มาจาก server เรียงใหม่สุดก่อนแล้ว */
+export function ArchiveView({ articles }: { articles: Article[] }) {
   const { t, lang } = useLang();
   const [type, setType] = useState<ArticleType | "">("");
-  const list = type ? sorted.filter((a) => a.type === type) : sorted;
+  const list = type ? articles.filter((a) => a.type === type) : articles;
 
   return (
     <div className="wrap">

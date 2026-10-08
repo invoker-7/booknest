@@ -204,6 +204,7 @@ const SECTIONS = [
   ["แดชบอร์ด", ""],
   ["สินค้า", "/products"],
   ["คำสั่งซื้อ", "/orders"],
+  ["บทความ", "/articles"],
   ["ลูกค้า", "/customers"],
   ["ผู้ใช้", "/users"],
   ["รายงาน", "/reports"],

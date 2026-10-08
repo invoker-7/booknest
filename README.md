@@ -20,6 +20,8 @@ VECTOR เป็นร้านขายสินค้าดิจิทัล 
 - **ส่งไฟล์:** สร้าง signed URL จาก bucket แบบ private (มีอายุ 24 ชม.) แล้วส่งทางอีเมลผ่าน Gmail SMTP
 - **คลังของฉัน:** สินค้าที่ซื้อแล้ว ดาวน์โหลดซ้ำ ชำระคำสั่งซื้อที่ค้าง และค้นหาคำสั่งซื้อเดิมด้วยเลขคำสั่งซื้อคู่กับอีเมล
 - **สมาชิก:** เข้าสู่ระบบด้วย Google (SSO เข้าได้ทันที) หรือกรอกอีเมลแล้วยืนยันด้วยรหัส OTP 6 หลักที่ส่งทางอีเมล (Supabase Auth) อีเมลที่ยังไม่เคยใช้จะได้บัญชีใหม่ให้เอง ไม่มีรหัสผ่าน (อายุ 10 นาที, ผิดได้ 5 ครั้ง, ขอใหม่ได้ทุก 60 วินาที) ไม่มีรหัสผ่านให้จำ บัญชีถูกสร้างตอนเข้าสู่ระบบครั้งแรก คำสั่งซื้อที่ทำตอนล็อกอินผูกกับบัญชี ดูประวัติและดาวน์โหลดได้จากทุกอุปกรณ์ที่ `/account`
+- **รีวิวสินค้า:** ผู้ที่ซื้อและจ่ายเงินแล้วให้คะแนน 1–5 ดาวพร้อมข้อความได้ คนละหนึ่งรีวิวต่อสินค้า (แก้และลบของตัวเองได้ ผู้ดูแลลบได้ทุกรีวิว) คะแนนเฉลี่ยของสินค้าคำนวณจากรีวิวจริงด้วย trigger ในฐานข้อมูล
+- **คลังบทความ:** เขียน แก้ไข เก็บเป็นฉบับร่าง และลบบทความได้จากหลังบ้าน `/admin/articles` ผูกบทความกับสินค้าได้ เมนูคลังบทความแสดงเมื่อมีบทความที่เผยแพร่แล้ว
 - **หลังบ้าน (`/admin`, เฉพาะผู้ดูแล):**
   - Dashboard: ยอดขาย คำสั่งซื้อ ลูกค้า สินค้า กราฟยอดขาย 30 วัน สินค้าขายดี อัปเดตเองทุก 15 วินาที
   - แจ้งเตือนงานรอจัดการ: ตัวเลขบนเมนูคำสั่งซื้อและบนแท็บเบราว์เซอร์ (อัปเดตทุก 30 วินาที), กล่อง "ต้องจัดการ" บนแดชบอร์ด, ตัวกรองคำสั่งซื้อ (รอร้านตรวจสลิป / รอชำระเงิน / ส่งไฟล์ไม่ถึง) และอีเมลถึง `ADMIN_EMAILS` เมื่อมีสลิปใบแรกของคำสั่งซื้อเข้ามา
@@ -119,7 +121,7 @@ supabase/*.sql          ตาราง, function และ RLS
 ## เริ่มต้นใช้งาน
 
 1. **สร้างโปรเจกต์ Supabase**
-   - ไปที่ SQL Editor แล้วรันตามลำดับ: [supabase/schema.sql](supabase/schema.sql) → [supabase/marketplace.sql](supabase/marketplace.sql) → [supabase/admin.sql](supabase/admin.sql) → [supabase/cart.sql](supabase/cart.sql)
+   - ไปที่ SQL Editor แล้วรันตามลำดับ: [supabase/schema.sql](supabase/schema.sql) → [supabase/marketplace.sql](supabase/marketplace.sql) → [supabase/admin.sql](supabase/admin.sql) → [supabase/cart.sql](supabase/cart.sql) → [supabase/content.sql](supabase/content.sql)
    - `admin.sql` สร้าง bucket `ebooks` แบบ **private** ให้แล้ว ไฟล์สินค้าอัปโหลดผ่านหน้า `/admin/products`
    - Authentication → URL Configuration: ใส่ Site URL ของเว็บ และเพิ่ม `https://<โดเมน>/auth/callback` (กับ `http://localhost:3000/auth/callback`) ใน Redirect URLs
    - Authentication → Providers → Google: ใส่ Client ID / Secret จาก Google Cloud Console แล้วตั้ง `AUTH_GOOGLE_ENABLED=true` (ไม่ตั้งก็ยังเข้าสู่ระบบด้วยอีเมลได้)

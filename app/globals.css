@@ -266,6 +266,7 @@ main { min-height: calc(100vh - var(--hdr) - 34px); min-height: calc(100svh - va
 .tag.amber { background: var(--amber-soft); color: var(--amber); }
 .tag.red { background: var(--red-soft); color: var(--red); }
 .tag.neutral { background: var(--sunk); color: var(--ink-2); }
+.tag.green { background: #E2F1E8; color: var(--green); }
 
 .notice {
   display: flex; gap: 12px; padding: 16px; border: 1px solid var(--line-2); border-left-width: 3px;
@@ -605,6 +606,26 @@ html[lang="th"] .pd-buy h1 { line-height: 1.25; }
 .doc { border-top: 1px solid var(--ink); display: grid; grid-template-columns: 3fr 9fr; gap: 32px; padding: 20px 0 72px; }
 .doc-body > p + p, .doc-body > ul + p { margin-top: 16px; }
 .pd-list { list-style: disc; padding-left: 22px; margin-top: 10px; display: grid; gap: 6px; color: var(--ink-2); font-size: 17px; line-height: 1.6; }
+/* รีวิวสินค้า */
+.stars { display: inline-flex; gap: 2px; color: var(--gold); }
+.rev-list { margin-top: 28px; border-top: 1px solid var(--line); }
+.rev-list li { padding: 20px 0; border-bottom: 1px solid var(--line); display: grid; gap: 8px; justify-items: start; }
+.rev-head { display: flex; gap: 8px 12px; align-items: center; flex-wrap: wrap; width: 100%; }
+.rev-date { margin-left: auto; font-size: 12px; }
+.rev-body { color: var(--ink-2); white-space: pre-line; max-width: 68ch; }
+.rev-write { margin-top: 28px; }
+.rev-write form { background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--gold); padding: 24px; max-width: 640px; }
+.rev-write h3 { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+.rev-rate { border: 0; padding: 0; margin: 0 0 16px; display: flex; align-items: center; gap: 2px; }
+.rev-rate legend { font-size: 14px; font-weight: 500; margin-bottom: 6px; padding: 0; }
+.rev-rate label { cursor: pointer; color: var(--line-2); padding: 4px; }
+.rev-rate label.on { color: var(--gold); }
+.rev-rate label:hover { color: var(--gold); }
+.rev-rate label:has(:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
+.rev-write textarea { border: 1px solid var(--field); background: var(--surface); padding: 12px 14px; font-size: 16px; resize: vertical; width: 100%; }
+.rev-write textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 1px var(--blue); outline: none; }
+.rev-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
 /* แกลเลอรีหน้าสินค้า: ภาพปก + ภาพตัวอย่างเนื้อหา */
 .gallery-stage { position: relative; border: 1px solid var(--line); background: var(--surface); }
 .gallery-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; aspect-ratio: 4 / 3; }
@@ -648,13 +669,6 @@ html[lang="th"] .pd-buy h1 { line-height: 1.25; }
 
 .rev-summary { display: flex; align-items: flex-end; gap: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
 .rev-big { font-size: 72px; font-weight: 500; line-height: .9; letter-spacing: -.04em; }
-.stars { display: flex; gap: 2px; color: var(--ink); }
-.stars .off { color: var(--line-2); }
-.rev-list li { display: grid; grid-template-columns: 200px 1fr; gap: 24px; padding: 24px 0; border-bottom: 1px solid var(--line); }
-.rev-who { font-size: 14px; }
-.rev-who span { display: block; color: var(--muted); font-size: 13px; }
-.rev-who .mono { font-size: 12px; margin-top: 4px; }
-.rev-body p { margin-top: 8px; color: var(--ink-2); }
 
 .faq { border-top: 1px solid var(--line); }
 .faq details { border-bottom: 1px solid var(--line); }
@@ -1017,7 +1031,6 @@ html[lang="th"] .article h1 { line-height: 1.25; }
   .doc-body > p { font-size: 16px; }
   .preview-grid { grid-template-columns: 1fr 1fr; grid-template-rows: auto; }
   .preview-grid figure:first-child { grid-column: 1 / -1; grid-row: auto; }
-  .rev-list li { grid-template-columns: 1fr; gap: 8px; }
   .faq details p { padding-right: 0; }
 
   .sticky-buy {
