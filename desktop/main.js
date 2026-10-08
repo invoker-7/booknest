@@ -205,6 +205,7 @@ const SECTIONS = [
   ["สินค้า", "/products"],
   ["คำสั่งซื้อ", "/orders"],
   ["บทความ", "/articles"],
+  ["ความคิดเห็น", "/comments"],
   ["รีวิว", "/reviews"],
   ["ครีเอเตอร์", "/shops"],
   ["ลูกค้า", "/customers"],

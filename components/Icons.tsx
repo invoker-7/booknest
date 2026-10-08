@@ -57,6 +57,8 @@ export const Mail = (p: IconProps) => <I {...p}><path d="M3 5.5h18v13H3zM3 6l9 7
 export const Card = (p: IconProps) => <I {...p}><path d="M3 5.5h18v13H3zM3 9.5h18M6.5 15h4" /></I>;
 export const Qr = (p: IconProps) => <I {...p}><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2.5v2.5H14zM17.5 17.5H20V20h-2.5zM20 14v1M14 20v-1" /></I>;
 export const Bolt = (p: IconProps) => <I {...p}><path d="M13 3L5 13.5h6L10 21l8.5-11H12.5z" /></I>;
+export const Share = (p: IconProps) => <I {...p}><path d="M12 15V3.5M7.5 8L12 3.5 16.5 8M5 12v8.5h14V12" /></I>;
+export const Chat = (p: IconProps) => <I {...p}><path d="M4 5h16v11H11l-5 4v-4H4z" /></I>;
 export const Lock = (p: IconProps) => <I {...p}><path d="M5 11h14v10H5zM8 11V7.5a4 4 0 018 0V11" /></I>;
 export const Print = (p: IconProps) => <I {...p}><path d="M6 9V3h12v6M6 17H3V9h18v8h-3M6 14h12v7H6z" /></I>;
 export const Trash = (p: IconProps) => <I {...p}><path d="M4 6h16M9 6V3.5h6V6M6 6l1 15h10l1-15" /></I>;

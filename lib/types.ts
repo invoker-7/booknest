@@ -258,6 +258,16 @@ export interface Review {
   created_at: string;
 }
 
+/** ความคิดเห็นใต้บทความ — own = เป็นของผู้ที่ล็อกอินอยู่ (ลบเองได้) */
+export interface ArticleComment {
+  id: string;
+  article: string;
+  name: string;
+  body: string;
+  created_at: string;
+  own: boolean;
+}
+
 export interface Article {
   slug: string;
   type: ArticleType;

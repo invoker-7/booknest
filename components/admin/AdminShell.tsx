@@ -7,7 +7,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { useLang } from "@/components/LangProvider";
 import { LangToggle } from "@/components/Shell";
 import { useToast } from "@/components/StoreProvider";
-import { Archive, ArrowLeft, Box, Chart, Check, List, Mark, Receipt, Swap, User, Users, Mail, type IconProps } from "@/components/Icons";
+import { Archive, ArrowLeft, Box, Chart, Chat, Check, List, Mark, Receipt, Swap, User, Users, Mail, type IconProps } from "@/components/Icons";
 import type { TKey } from "@/lib/i18n";
 import type { AdminTodo } from "@/lib/types";
 
@@ -16,6 +16,7 @@ const NAV: { href: string; key: TKey; Icon: (p: IconProps) => JSX.Element }[] = 
   { href: "/admin/products", key: "admProducts", Icon: Box },
   { href: "/admin/orders", key: "admOrders", Icon: Receipt },
   { href: "/admin/articles", key: "admArticles", Icon: Mail },
+  { href: "/admin/comments", key: "admComments", Icon: Chat },
   { href: "/admin/reviews", key: "admReviews", Icon: Check },
   { href: "/admin/shops", key: "admShops", Icon: Mark },
   { href: "/admin/customers", key: "admCustomers", Icon: Users },

@@ -868,6 +868,9 @@ html[lang="th"] .article h1 { line-height: 1.25; }
 .article .body p { font-size: 18px; line-height: 1.8; margin-top: 24px; }
 .article .body p:first-child::first-letter { font-weight: 600; }
 .mention { border-top: 1px solid var(--ink); margin-top: 56px; padding-top: 16px; }
+.article-share { margin-top: 32px; }
+.comments { border-top: 1px solid var(--ink); margin-top: 56px; padding-top: 16px; }
+.comments .rev-write form { border-top-color: var(--indigo); }
 
 /* =========================================================
    Toast

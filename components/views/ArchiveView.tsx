@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import ArticleComments, { ShareButton } from "@/components/ArticleComments";
 import { useLang } from "@/components/LangProvider";
 import { ArrowLeft } from "@/components/Icons";
 import { ProductRow, Empty } from "@/components/ui";
@@ -82,6 +83,9 @@ export function ArticleView({ article: a, product }: { article: Article; product
           <div className="body">
             {body.map((p, i) => <p key={i}>{p}</p>)}
           </div>
+          <div className="article-share">
+            <ShareButton title={pick(a, "title", lang)} />
+          </div>
 
           {product && (
             <section className="mention" aria-labelledby="mention-title">
@@ -91,6 +95,8 @@ export function ArticleView({ article: a, product }: { article: Article; product
               </div>
             </section>
           )}
+
+          <ArticleComments slug={a.slug} />
         </div>
         <aside aria-hidden="true" />
       </article>

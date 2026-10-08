@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">VECTOR</string>
+    <!-- ที่อยู่เว็บร้านที่ deploy แล้ว — แอปเปิดหน้านี้ ไม่มีโค้ดร้านซ้ำอยู่ในแอป -->
+    <string name="store_url" translatable="false">https://booknest-sooty.vercel.app</string>
+
+    <string name="login_title">เข้าสู่ระบบด้วย Google</string>
+    <string name="login_body">Google ไม่อนุญาตให้เข้าสู่ระบบจากหน้าเว็บที่ฝังอยู่ในแอป ในแอปนี้ให้เข้าสู่ระบบด้วยอีเมลและรหัส OTP แทน หรือเปิดร้านในเบราว์เซอร์เพื่อใช้ Google</string>
+    <string name="login_open">เปิดในเบราว์เซอร์</string>
+    <string name="cancel">ยกเลิก</string>
+    <string name="choose_file">เลือกไฟล์</string>
+    <string name="download_started">กำลังดาวน์โหลด ดูได้ในแถบแจ้งเตือน</string>
+    <string name="download_failed">ดาวน์โหลดไม่สำเร็จ</string>
+    <string name="no_app">ไม่มีแอปสำหรับเปิดลิงก์นี้</string>
+</resources>
