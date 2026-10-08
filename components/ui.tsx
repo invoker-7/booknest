@@ -5,7 +5,7 @@ import { forwardRef, type ButtonHTMLAttributes, type ComponentProps, type Elemen
 import { useLang } from "./LangProvider";
 import { useStore } from "./StoreProvider";
 import ProductArt from "./ProductArt";
-import { Arrow, Check, Spinner, Star, Alert, Info } from "./Icons";
+import { Arrow, Check, Spinner, Star, Alert, Info, Card, Qr, Bolt, Lock, Mail, type IconProps } from "./Icons";
 import { money, pick } from "@/lib/format";
 import { discountOf } from "@/lib/catalog";
 import type { TKey } from "@/lib/i18n";
@@ -282,17 +282,40 @@ export function Notice({ tone = "info", title, children }: NoticeProps) {
   );
 }
 
-/** ป้ายและคำอธิบายของวิธีชำระเงินหนึ่งวิธี */
-function payCopy(method: PayMethod, test?: boolean): { tags: { text: string; tone: "blue" | "amber" }[]; title: TKey; body: TKey } {
+interface PayCopy {
+  /** ชุดสีของวิธีนี้ (ดู .paychoice-icon ใน globals.css) */
+  tone: "card" | "transfer" | "test";
+  Icon: (p: IconProps) => JSX.Element;
+  tags: { text: string; tone: "blue" | "amber" }[];
+  title: TKey;
+  body: TKey;
+  /** จุดเด่นสั้น ๆ ใต้คำอธิบาย */
+  perks: { text: TKey; tone: "green" | "amber" | "blue" }[];
+}
+
+/** หน้าตาและคำอธิบายของวิธีชำระเงินหนึ่งวิธี */
+function payCopy(method: PayMethod, test?: boolean): PayCopy {
   if (method === "stripe") {
     return {
+      tone: "card",
+      Icon: Card,
       tags: [{ text: "CARD · PROMPTPAY", tone: "blue" }, ...(test ? [{ text: "TEST MODE", tone: "amber" as const }] : [])],
       title: "payStripeTitle",
       body: test ? "stripeTestBody" : "stripeBody",
+      perks: [{ text: "perkInstantConfirm", tone: "green" }, { text: "perkInstantFile", tone: "blue" }],
     };
   }
-  if (method === "promptpay") return { tags: [{ text: "PROMPTPAY", tone: "blue" }], title: "payTransferTitle", body: "promptPayBody" };
-  return { tags: [{ text: "LOCAL TEST", tone: "amber" }], title: "demoTag", body: "demoBody" };
+  if (method === "promptpay") {
+    return {
+      tone: "transfer",
+      Icon: Qr,
+      tags: [{ text: "PROMPTPAY", tone: "blue" }],
+      title: "payTransferTitle",
+      body: "promptPayBody",
+      perks: [{ text: "perkNoFee", tone: "green" }, { text: "perkWaitReview", tone: "amber" }],
+    };
+  }
+  return { tone: "test", Icon: Bolt, tags: [{ text: "LOCAL TEST", tone: "amber" }], title: "demoTag", body: "demoBody", perks: [] };
 }
 
 interface PayMethodsProps {
@@ -305,41 +328,61 @@ interface PayMethodsProps {
 
 /**
  * วิธีชำระเงินของร้าน — ไม่แสดงเมื่อร้านยังไม่เปิดรับชำระเงิน
- * เปิดไว้วิธีเดียว: แสดงเป็นกล่องอธิบาย, มากกว่าหนึ่งวิธี: ให้ผู้ซื้อเลือก
+ * เปิดไว้วิธีเดียว: แสดงเป็นการ์ดอธิบาย, มากกว่าหนึ่งวิธี: ให้ผู้ซื้อเลือก
  */
 export function PayMethods({ pay, value, onChange, disabled }: PayMethodsProps) {
   const { t } = useLang();
   if (pay.methods.length === 0) return null;
+  const choose = pay.methods.length > 1;
 
-  if (pay.methods.length === 1) {
-    const copy = payCopy(pay.methods[0]!, pay.test);
-    return (
-      <div className="paydemo">
-        {copy.tags.map((tag) => <span key={tag.text} className={`tag ${tag.tone}`}>{tag.text}</span>)}
-        <p>{t(copy.body)}</p>
-      </div>
+  const card = (method: PayMethod) => {
+    const copy = payCopy(method, pay.test);
+    const on = !choose || value === method;
+    const inner = (
+      <>
+        <span className={`paychoice-icon ${copy.tone}`} aria-hidden="true"><copy.Icon size={24} /></span>
+        <span className="paychoice-body">
+          <span className="paychoice-head">
+            <strong>{t(copy.title)}</strong>
+            {copy.tags.map((tag) => <span key={tag.text} className={`tag ${tag.tone}`}>{tag.text}</span>)}
+          </span>
+          <span className="paychoice-desc">{t(copy.body)}</span>
+          {copy.perks.length > 0 && (
+            <span className="paychoice-perks">
+              {copy.perks.map((perk) => <span key={perk.text} className={`perk ${perk.tone}`}><Check size={12} /> {t(perk.text)}</span>)}
+            </span>
+          )}
+        </span>
+        {choose && <span className="paychoice-mark" aria-hidden="true">{on && <Check size={14} />}</span>}
+      </>
     );
-  }
+    if (!choose) return <div key={method} className={`paychoice-card on ${copy.tone}`}>{inner}</div>;
+    return (
+      <label key={method} className={`paychoice-card ${copy.tone}${on ? " on" : ""}`}>
+        <input type="radio" className="sr-only" name="pay-method" value={method} checked={on} onChange={() => onChange(method)} />
+        {inner}
+      </label>
+    );
+  };
 
+  if (!choose) return <div className="paychoice">{card(pay.methods[0]!)}</div>;
   return (
     <fieldset className="paychoice" disabled={disabled}>
       <legend className="sr-only">{t("payment")}</legend>
-      {pay.methods.map((method) => {
-        const copy = payCopy(method, pay.test);
-        return (
-          <label key={method} className={value === method ? "on" : undefined}>
-            <input type="radio" name="pay-method" value={method} checked={value === method} onChange={() => onChange(method)} />
-            <span className="paychoice-body">
-              <span className="paychoice-head">
-                <strong>{t(copy.title)}</strong>
-                {copy.tags.map((tag) => <span key={tag.text} className={`tag ${tag.tone}`}>{tag.text}</span>)}
-              </span>
-              <span className="paychoice-desc">{t(copy.body)}</span>
-            </span>
-          </label>
-        );
-      })}
+      {pay.methods.map(card)}
     </fieldset>
+  );
+}
+
+/** แถวความมั่นใจใต้ปุ่มชำระเงิน */
+export function PayTrust() {
+  const { t } = useLang();
+  return (
+    <ul className="paytrust">
+      <li className="green"><Lock size={16} /> {t("trustSecure")}</li>
+      <li className="amber"><Bolt size={16} /> {t("trustInstant")}</li>
+      <li className="blue"><Mail size={16} /> {t("trustEmail")}</li>
+    </ul>
   );
 }
 

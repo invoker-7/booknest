@@ -7,7 +7,7 @@ import { useStore } from "@/components/StoreProvider";
 import { useAuth } from "@/components/AuthProvider";
 import ProductArt from "@/components/ProductArt";
 import { Alert, Arrow, Cart, Check, Info, Lock, Spinner } from "@/components/Icons";
-import { Button, LinkButton, Empty, Steps, Notice, PayMethods } from "@/components/ui";
+import { Button, LinkButton, Empty, Steps, Notice, PayMethods, PayTrust } from "@/components/ui";
 import { SummaryLines, totalsOf } from "@/components/views/CartView";
 import { isEmail, money, pick } from "@/lib/format";
 import { purchase, PurchaseError, type PurchasePhase } from "@/lib/purchase";
@@ -247,6 +247,7 @@ export default function CheckoutView({ live, pay: payOptions }: { live: boolean;
                     <Lock size={18} /> {phase === "error" ? t("retry") : `${t("payNow")} ${money(total, lang)}`}
                   </Button>
                 </div>
+                <PayTrust />
                 <p className="hint muted" style={{ fontSize: 13, marginTop: 12 }}>{t("termsNote")}</p>
               </>
             )}

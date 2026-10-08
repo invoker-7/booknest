@@ -54,6 +54,9 @@ export const Star = ({ filled = true, ...p }: FillableIconProps) => (
 export const Alert = (p: IconProps) => <I {...p}><path d="M12 3.5L22 20H2zM12 10v4.5M12 17v.5" /></I>;
 export const Info = (p: IconProps) => <I {...p}><circle cx="12" cy="12" r="9" /><path d="M12 11v6M12 7.5v.5" /></I>;
 export const Mail = (p: IconProps) => <I {...p}><path d="M3 5.5h18v13H3zM3 6l9 7 9-7" /></I>;
+export const Card = (p: IconProps) => <I {...p}><path d="M3 5.5h18v13H3zM3 9.5h18M6.5 15h4" /></I>;
+export const Qr = (p: IconProps) => <I {...p}><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2.5v2.5H14zM17.5 17.5H20V20h-2.5zM20 14v1M14 20v-1" /></I>;
+export const Bolt = (p: IconProps) => <I {...p}><path d="M13 3L5 13.5h6L10 21l8.5-11H12.5z" /></I>;
 export const Lock = (p: IconProps) => <I {...p}><path d="M5 11h14v10H5zM8 11V7.5a4 4 0 018 0V11" /></I>;
 export const Print = (p: IconProps) => <I {...p}><path d="M6 9V3h12v6M6 17H3V9h18v8h-3M6 14h12v7H6z" /></I>;
 export const Trash = (p: IconProps) => <I {...p}><path d="M4 6h16M9 6V3.5h6V6M6 6l1 15h10l1-15" /></I>;
