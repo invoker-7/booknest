@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useLang } from "@/components/LangProvider";
 import ProductArt from "@/components/ProductArt";
 import { Lock } from "@/components/Icons";
-import { Button, LinkButton, Steps, Notice, PayNote } from "@/components/ui";
+import { Button, LinkButton, Steps, Notice, PayMethods } from "@/components/ui";
 import { categoryOf } from "@/lib/catalog";
 import { money, pick } from "@/lib/format";
 import { payOrder, startCheckout } from "@/lib/apiClient";
@@ -25,6 +25,7 @@ export default function PayView({ order, book, pay: payOptions }: { order: SafeO
   const [error, setError] = useState("");
 
   const closed = !payOptions.method;
+  const [method, setMethod] = useState(payOptions.method);
 
   useEffect(() => {
     setMe(findLocalOrder(order.order_no));
@@ -36,7 +37,7 @@ export default function PayView({ order, book, pay: payOptions }: { order: SafeO
     setBusy(true);
     setError("");
     try {
-      const checkout = await startCheckout([order.order_no]);
+      const checkout = await startCheckout([order.order_no], method);
       if (checkout.mode === "stripe") {
         window.location.assign(checkout.url);
         return;
@@ -68,7 +69,7 @@ export default function PayView({ order, book, pay: payOptions }: { order: SafeO
                 <p>{t("resumeSub")}</p>
               </div>
             </div>
-            {closed ? <Notice tone="warn" title={t("previewBlockedTitle")}>{t("previewBlockedBody")}</Notice> : <PayNote pay={payOptions} />}
+            {closed ? <Notice tone="warn" title={t("previewBlockedTitle")}>{t("previewBlockedBody")}</Notice> : <PayMethods pay={payOptions} value={method} onChange={setMethod} disabled={busy} />}
             {error && <div style={{ marginTop: 16 }}><Notice tone="error">{error}</Notice></div>}
             <div style={{ marginTop: 20, display: "grid", gap: 8 }}>
               <Button onClick={pay} loading={busy} loadingText={t("paying")} disabled={closed} block>

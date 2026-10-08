@@ -1,7 +1,7 @@
 import { createOrder, payOrder, startCheckout } from "@/lib/apiClient";
 import { cartNoOf } from "@/lib/format";
 import { forgetOrder, listLocalOrders, rememberOrder, saveReceipt } from "@/lib/localOrders";
-import type { CartItem, Receipt, ReceiptLine } from "@/lib/types";
+import type { CartItem, PayMethod, Receipt, ReceiptLine } from "@/lib/types";
 
 export interface Buyer {
   name: string;
@@ -96,7 +96,9 @@ async function createCart(items: CartItem[], buyer: Buyer): Promise<Map<string, 
 export async function purchase(
   items: CartItem[],
   buyer: Buyer,
-  onPhase: (phase: PurchasePhase) => void = () => {}
+  onPhase: (phase: PurchasePhase) => void = () => {},
+  /** วิธีชำระเงินที่ผู้ซื้อเลือก — ไม่ระบุใช้วิธีเริ่มต้นของร้าน */
+  method: PayMethod | null = null
 ): Promise<Receipt> {
   let touched = false;
 
@@ -119,7 +121,7 @@ export async function purchase(
 
     let checkout;
     try {
-      checkout = await startCheckout(ordered.map((o) => o.orderNo));
+      checkout = await startCheckout(ordered.map((o) => o.orderNo), method);
     } catch (error) {
       // คำสั่งซื้อที่จำไว้ไม่อยู่บน server แล้ว (เช่น ร้านลบไป) หรือจ่ายไปแล้ว: ออกคำสั่งซื้อใหม่ให้ตะกร้านี้
       const stale = error instanceof Error && (error.message === "order_not_found" || error.message === "already_paid");
@@ -127,7 +129,7 @@ export async function purchase(
       for (const orderNo of reused.values()) forgetOrder(orderNo);
       orderNos = await createCart(items, buyer);
       ordered = lineUp();
-      checkout = await startCheckout(ordered.map((o) => o.orderNo));
+      checkout = await startCheckout(ordered.map((o) => o.orderNo), method);
     }
     if (checkout.mode !== "mock") {
       // จ่ายด้วย QR พร้อมเพย์ (หรือสินค้าฟรีที่ server จัดส่งให้แล้ว):

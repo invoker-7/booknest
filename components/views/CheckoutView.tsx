@@ -7,7 +7,7 @@ import { useStore } from "@/components/StoreProvider";
 import { useAuth } from "@/components/AuthProvider";
 import ProductArt from "@/components/ProductArt";
 import { Alert, Arrow, Cart, Check, Info, Lock, Spinner } from "@/components/Icons";
-import { Button, LinkButton, Empty, Steps, Notice, PayNote } from "@/components/ui";
+import { Button, LinkButton, Empty, Steps, Notice, PayMethods } from "@/components/ui";
 import { SummaryLines, totalsOf } from "@/components/views/CartView";
 import { isEmail, money, pick } from "@/lib/format";
 import { purchase, PurchaseError, type PurchasePhase } from "@/lib/purchase";
@@ -26,6 +26,7 @@ export default function CheckoutView({ live, pay: payOptions }: { live: boolean;
   const { ready: authReady, user } = useAuth();
 
   const [step, setStep] = useState<1 | 2>(1); // 1 = ข้อมูลผู้ซื้อ, 2 = ชำระเงิน
+  const [method, setMethod] = useState(payOptions.method);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [touched, setTouched] = useState(false);
@@ -108,7 +109,8 @@ export default function CheckoutView({ live, pay: payOptions }: { live: boolean;
       const receipt = await purchase(
         items,
         { name: name.trim(), email: email.trim().toLowerCase() },
-        setPhase
+        setPhase,
+        method
       );
       removeManyFromCart(items.map((p) => p.id));
       router.push(`/complete/${receipt.id}`);
@@ -214,7 +216,7 @@ export default function CheckoutView({ live, pay: payOptions }: { live: boolean;
 
             {step === 2 && (
               <>
-                <PayNote pay={payOptions} />
+                <PayMethods pay={payOptions} value={method} onChange={setMethod} disabled={busy} />
 
                 {phase === "error" && (
                   <div style={{ marginTop: 16 }}>

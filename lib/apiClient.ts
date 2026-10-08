@@ -1,4 +1,4 @@
-import type { AccountOrder, EmailStatus, LookupOrder, OrderStatus, SessionUser } from "@/lib/types";
+import type { AccountOrder, EmailStatus, LookupOrder, OrderStatus, SessionUser, PayMethod } from "@/lib/types";
 
 /**
  * ตัวเรียก API ของร้านจากฝั่งเบราว์เซอร์
@@ -53,7 +53,8 @@ export type CheckoutStart =
   | { mode: "mock" }; // ทดสอบในเครื่องโดยยังไม่ได้ตั้งพร้อมเพย์ ใช้แบบจำลอง
 
 /** เริ่มชำระเงินของคำสั่งซื้อที่ค้างอยู่ (ทั้งตะกร้าจ่ายครั้งเดียว) */
-export const startCheckout = (orderNos: string[]) => postJson<CheckoutStart>("/api/checkout", { orderNos });
+export const startCheckout = (orderNos: string[], method?: PayMethod | null) =>
+  postJson<CheckoutStart>("/api/checkout", { orderNos, ...(method ? { method } : {}) });
 
 export interface PromptPayState {
   orders: { orderNo: string; status: OrderStatus; slip: boolean }[];

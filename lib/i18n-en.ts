@@ -204,6 +204,8 @@ export const EN: Record<TKey, string> = {
   admConfirmPaidAsk: "Have you checked the slip and received payment for this order? The files are sent to the buyer right away.",
   admConfirmPaidDone: "Payment confirmed and files sent",
   demoTag: "LOCAL TEST",
+  payStripeTitle: "Card or PromptPay QR (confirmed instantly)",
+  payTransferTitle: "PromptPay transfer, then attach your slip",
   stripeBody: "Pay by credit/debit card or PromptPay QR on Stripe's checkout page. Payment is confirmed automatically and your files are sent at once.",
   stripeTestBody: "Test mode: no real charge. Use test card 4242 4242 4242 4242 with any future expiry and any CVC. Payment is confirmed automatically and your files are sent at once.",
   demoBody: "Local test mode: no payment method is configured, so pressing Pay marks the order paid. This never runs in production.",

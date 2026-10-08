@@ -11,21 +11,23 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * POST /api/checkout  { orderNos: string[] }
+ * POST /api/checkout  { orderNos: string[], method?: "stripe" | "promptpay" }
  *   -> { mode: "stripe", url } | { mode: "promptpay", orderNos } | { mode: "free" } | { mode: "mock" }
  * เริ่มการชำระเงินของคำสั่งซื้อที่ค้างอยู่ (ทั้งตะกร้าจ่ายครั้งเดียว)
+ * method = วิธีที่ผู้ซื้อเลือก (ต้องเป็นวิธีที่ร้านเปิดไว้) — ไม่ระบุใช้วิธีเริ่มต้นของร้าน
  */
 export async function POST(req: Request) {
   if (!isSupabaseConfigured) {
     return NextResponse.json({ error: "supabase_not_configured" }, { status: 503 });
   }
 
-  const { method } = payOptions;
-  if (!method) return NextResponse.json({ error: "payment_not_configured" }, { status: 503 });
+  if (!payOptions.method) return NextResponse.json({ error: "payment_not_configured" }, { status: 503 });
   // ทดสอบในเครื่องโดยยังไม่ได้ตั้งช่องทางชำระเงิน: ให้หน้าเว็บใช้การชำระเงินแบบจำลอง
-  if (method === "mock") return NextResponse.json({ mode: "mock" });
+  if (payOptions.method === "mock") return NextResponse.json({ mode: "mock" });
 
   const body = await readJsonBody(req);
+  // วิธีที่ผู้ซื้อเลือก ใช้ได้ก็ต่อเมื่อร้านเปิดวิธีนั้นไว้ ไม่เช่นนั้นใช้วิธีเริ่มต้น
+  const method = payOptions.methods.find((m) => m === body?.method) ?? payOptions.method;
   const orderNos = Array.isArray(body?.orderNos) ? [...new Set(body.orderNos.map(normalizeOrderNo).filter(Boolean))] : [];
   if (orderNos.length === 0 || orderNos.length > MAX_CHECKOUT_ORDERS) {
     return NextResponse.json({ error: "invalid_orders" }, { status: 400 });

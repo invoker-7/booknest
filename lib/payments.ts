@@ -5,10 +5,10 @@ import { isStripeEnabled, isStripeTestMode, type StripeSession } from "@/lib/str
 import type { PayOptions } from "@/lib/types";
 
 /**
- * การชำระเงินของร้าน เลือกจากสิ่งที่ตั้งค่าไว้ ตามลำดับ:
- * 1. Stripe (ตั้ง STRIPE_SECRET_KEY) — บัตรหรือ QR พร้อมเพย์ ยืนยันอัตโนมัติ ส่งไฟล์ทันที
- * 2. QR พร้อมเพย์ของร้านเอง (ตั้ง PROMPTPAY_ID) — ผู้ซื้อแนบสลิป ร้านหรือระบบตรวจสลิปยืนยัน
- * 3. ไม่ได้ตั้งทั้งสอง: production ปิดการสั่งซื้อ, ในเครื่อง (pnpm dev) ใช้แบบจำลอง กดแล้วถือว่าจ่ายทันที
+ * การชำระเงินของร้าน — เปิดได้สองช่องทางพร้อมกัน ผู้ซื้อเลือกเองตอนชำระเงิน:
+ * - Stripe (ตั้ง STRIPE_SECRET_KEY) — บัตรหรือ QR พร้อมเพย์ ยืนยันอัตโนมัติ ส่งไฟล์ทันที
+ * - โอนผ่าน QR พร้อมเพย์ของร้าน (ตั้ง PROMPTPAY_ID) — ผู้ซื้อแนบสลิป ร้านหรือระบบตรวจสลิปยืนยัน
+ * ไม่ได้ตั้งทั้งสอง: production ปิดการสั่งซื้อ, ในเครื่อง (pnpm dev) ใช้แบบจำลอง กดแล้วถือว่าจ่ายทันที
  */
 
 /** true = ยังไม่ได้ตั้งช่องทางชำระเงิน และไม่ได้รันบน production — ช่องทางจำลองเปิดให้ใช้ทดสอบในเครื่อง */
@@ -18,8 +18,15 @@ export const isMockPayment = !isStripeEnabled && !isPromptPayEnabled && process.
 export const MAX_CHECKOUT_ORDERS = 20;
 
 /** ข้อมูลที่หน้าเว็บใช้แสดงวิธีชำระเงิน (ไม่มี key หรือเบอร์เต็มรั่วออกไป) — method เป็น null เมื่อร้านยังไม่เปิดรับชำระเงิน */
+const methods: PayOptions["methods"] = [
+  ...(isStripeEnabled ? (["stripe"] as const) : []),
+  ...(isPromptPayEnabled ? (["promptpay"] as const) : []),
+  ...(isMockPayment ? (["mock"] as const) : []),
+];
+
 export const payOptions: PayOptions = {
-  method: isStripeEnabled ? "stripe" : isPromptPayEnabled ? "promptpay" : isMockPayment ? "mock" : null,
+  method: methods[0] ?? null,
+  methods,
   promptPayId: promptPayMasked(),
   test: isStripeEnabled && isStripeTestMode,
 };

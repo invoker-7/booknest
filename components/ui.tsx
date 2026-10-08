@@ -8,7 +8,8 @@ import ProductArt from "./ProductArt";
 import { Arrow, Check, Spinner, Star, Alert, Info } from "./Icons";
 import { money, pick } from "@/lib/format";
 import { discountOf } from "@/lib/catalog";
-import type { OrderStatus, PayOptions, Product } from "@/lib/types";
+import type { TKey } from "@/lib/i18n";
+import type { OrderStatus, PayOptions, Product, PayMethod } from "@/lib/types";
 
 type ButtonVariant = "primary" | "success" | "secondary" | "ghost" | "danger" | "light" | "outline-light";
 type ButtonSize = "small";
@@ -281,29 +282,67 @@ export function Notice({ tone = "info", title, children }: NoticeProps) {
   );
 }
 
-/** กล่องบอกวิธีชำระเงินของร้าน: Stripe, QR พร้อมเพย์ หรือโหมดทดสอบในเครื่อง — ไม่แสดงเมื่อร้านยังไม่เปิดรับชำระเงิน */
-export function PayNote({ pay }: { pay: PayOptions }) {
+/** ป้ายและคำอธิบายของวิธีชำระเงินหนึ่งวิธี */
+function payCopy(method: PayMethod, test?: boolean): { tags: { text: string; tone: "blue" | "amber" }[]; title: TKey; body: TKey } {
+  if (method === "stripe") {
+    return {
+      tags: [{ text: "CARD · PROMPTPAY", tone: "blue" }, ...(test ? [{ text: "TEST MODE", tone: "amber" as const }] : [])],
+      title: "payStripeTitle",
+      body: test ? "stripeTestBody" : "stripeBody",
+    };
+  }
+  if (method === "promptpay") return { tags: [{ text: "PROMPTPAY", tone: "blue" }], title: "payTransferTitle", body: "promptPayBody" };
+  return { tags: [{ text: "LOCAL TEST", tone: "amber" }], title: "demoTag", body: "demoBody" };
+}
+
+interface PayMethodsProps {
+  pay: PayOptions;
+  /** วิธีที่เลือกอยู่ */
+  value: PayMethod | null;
+  onChange: (method: PayMethod) => void;
+  disabled?: boolean;
+}
+
+/**
+ * วิธีชำระเงินของร้าน — ไม่แสดงเมื่อร้านยังไม่เปิดรับชำระเงิน
+ * เปิดไว้วิธีเดียว: แสดงเป็นกล่องอธิบาย, มากกว่าหนึ่งวิธี: ให้ผู้ซื้อเลือก
+ */
+export function PayMethods({ pay, value, onChange, disabled }: PayMethodsProps) {
   const { t } = useLang();
-  if (!pay.method) return null;
-  const mock = pay.method === "mock";
-  if (pay.method === "stripe") {
+  if (pay.methods.length === 0) return null;
+
+  if (pay.methods.length === 1) {
+    const copy = payCopy(pay.methods[0]!, pay.test);
     return (
       <div className="paydemo">
-        <span className="tag blue">CARD · PROMPTPAY</span>
-        {pay.test && <span className="tag amber">TEST MODE</span>}
-        <p>{t(pay.test ? "stripeTestBody" : "stripeBody")}</p>
+        {copy.tags.map((tag) => <span key={tag.text} className={`tag ${tag.tone}`}>{tag.text}</span>)}
+        <p>{t(copy.body)}</p>
       </div>
     );
   }
+
   return (
-    <div className="paydemo">
-      <span className={`tag ${mock ? "amber" : "blue"}`}>{mock ? t("demoTag") : "PROMPTPAY"}</span>
-      <p>{t(mock ? "demoBody" : "promptPayBody")}</p>
-    </div>
+    <fieldset className="paychoice" disabled={disabled}>
+      <legend className="sr-only">{t("payment")}</legend>
+      {pay.methods.map((method) => {
+        const copy = payCopy(method, pay.test);
+        return (
+          <label key={method} className={value === method ? "on" : undefined}>
+            <input type="radio" name="pay-method" value={method} checked={value === method} onChange={() => onChange(method)} />
+            <span className="paychoice-body">
+              <span className="paychoice-head">
+                <strong>{t(copy.title)}</strong>
+                {copy.tags.map((tag) => <span key={tag.text} className={`tag ${tag.tone}`}>{tag.text}</span>)}
+              </span>
+              <span className="paychoice-desc">{t(copy.body)}</span>
+            </span>
+          </label>
+        );
+      })}
+    </fieldset>
   );
 }
 
-/** แถบแจ้งว่าร้านยังไม่ได้เชื่อมต่อฐานข้อมูล */
 export function PreviewBanner({ live }: { live: boolean }) {
   const { t } = useLang();
   if (live) return null;
