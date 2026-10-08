@@ -54,6 +54,30 @@ export function rememberOrders(entries: LocalOrder[]): void {
   write(KEY, [...byNo.values()].slice(-60));
 }
 
+/**
+ * ทำให้คำสั่งซื้อของบัญชีบนอุปกรณ์นี้ตรงกับ server: เพิ่ม/อัปเดตตามรายการที่ได้มา
+ * และเอารายการของบัญชีที่ server ไม่มีแล้วออก (เช่น ร้านลบคำสั่งซื้อไปแล้ว)
+ */
+export function replaceAccountOrders(entries: LocalOrder[]): void {
+  const current = new Set(entries.map((o) => o.orderNo));
+  const kept = listLocalOrders().filter((o) => !o.account || current.has(o.orderNo));
+  const byNo = new Map(kept.map((o) => [o.orderNo, o]));
+  const now = new Date().toISOString();
+  for (const entry of entries) {
+    const prev = byNo.get(entry.orderNo);
+    byNo.delete(entry.orderNo);
+    byNo.set(entry.orderNo, { ...prev, ...entry, savedAt: prev?.savedAt || now });
+  }
+  write(KEY, [...byNo.values()].slice(-60));
+}
+
+/** เอาคำสั่งซื้อหนึ่งรายการออกจากอุปกรณ์นี้ (server ยืนยันแล้วว่าไม่มีคำสั่งซื้อนี้) */
+export function forgetOrder(orderNo: string): void {
+  const all = listLocalOrders();
+  const kept = all.filter((o) => o.orderNo !== orderNo);
+  if (kept.length !== all.length) write(KEY, kept);
+}
+
 /** ออกจากระบบ: เอาคำสั่งซื้อของบัญชีออกจากอุปกรณ์นี้ (คำสั่งซื้อแบบไม่ล็อกอินยังอยู่) */
 export function forgetAccountOrders(): void {
   const all = listLocalOrders();

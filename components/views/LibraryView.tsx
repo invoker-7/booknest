@@ -7,11 +7,11 @@ import { useStore } from "@/components/StoreProvider";
 import ProductArt from "@/components/ProductArt";
 import { Alert, Arrow, Download, Library } from "@/components/Icons";
 import { Button, LinkButton, Empty, StatusTag, Notice, ProductTile } from "@/components/ui";
-import { lookupOrder } from "@/lib/apiClient";
+import { checkOrder, lookupOrder } from "@/lib/apiClient";
 import { categoryOf } from "@/lib/catalog";
 import { openDownload } from "@/lib/download";
 import { fmtDate, isEmail, pick } from "@/lib/format";
-import { clearLocalOrders, rememberOrder } from "@/lib/localOrders";
+import { clearLocalOrders, forgetOrder, rememberOrder } from "@/lib/localOrders";
 import type { Category, LocalOrder, LookupOrder, Product } from "@/lib/types";
 
 type Tab = "purchases" | "saved";
@@ -86,8 +86,10 @@ export default function LibraryView({ products }: LibraryViewProps) {
     (async () => {
       for (const o of orders.slice(-SYNC_LIMIT)) {
         if (!o.email) continue;
-        const fresh = await lookupOrder(o.orderNo, o.email);
-        if (fresh) remember(fresh);
+        const fresh = await checkOrder(o.orderNo, o.email);
+        // server ไม่มีคำสั่งซื้อนี้แล้ว (เช่น ร้านลบไป): เอาออกจากคลังบนอุปกรณ์นี้ด้วย
+        if (fresh === "missing") forgetOrder(o.orderNo);
+        else if (fresh) remember(fresh);
       }
     })();
   }, [ready, orders]);

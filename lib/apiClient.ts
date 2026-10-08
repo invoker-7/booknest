@@ -94,11 +94,20 @@ export const payOrder = (orderNo: string) =>
 
 /** ค้นหาคำสั่งซื้อด้วยเลขคำสั่งซื้อ + อีเมล — คืน null เมื่อไม่พบหรืออีเมลไม่ตรง */
 export async function lookupOrder(orderNo: string, email: string): Promise<LookupOrder | null> {
+  const found = await checkOrder(orderNo, email);
+  return found === "missing" ? null : found;
+}
+
+/**
+ * เหมือน lookupOrder แต่แยกได้ว่า "server ตอบว่าไม่มีคำสั่งซื้อนี้" (missing) กับ "ถามไม่สำเร็จ" (null)
+ * ใช้ตอนซิงก์คลัง: ลบรายการออกจากอุปกรณ์เฉพาะเมื่อ server ยืนยันว่าไม่มีจริง ไม่ใช่เพราะเน็ตหลุด
+ */
+export async function checkOrder(orderNo: string, email: string): Promise<LookupOrder | "missing" | null> {
   try {
     const data = await postJson<{ order?: LookupOrder }>("/api/orders/lookup", { orderNo, email });
     return data.order ?? null;
-  } catch {
-    return null;
+  } catch (error) {
+    return error instanceof Error && error.message === "not_found" ? "missing" : null;
   }
 }
 
@@ -151,14 +160,14 @@ export const startEmailLogin = (email: string) => postJson<{ ok: true }>("/api/a
 
 export const logout = () => postJson<{ ok: true }>("/api/auth/logout");
 
-/** ประวัติคำสั่งซื้อของบัญชี — คืน [] เมื่อไม่สำเร็จ */
-export async function fetchAccountOrders(): Promise<AccountOrder[]> {
+/** ประวัติคำสั่งซื้อของบัญชี — คืน null เมื่อถามไม่สำเร็จ (ต่างจาก [] ที่แปลว่าบัญชีนี้ไม่มีคำสั่งซื้อ) */
+export async function fetchAccountOrders(): Promise<AccountOrder[] | null> {
   try {
     const res = await fetch("/api/account/orders", { cache: "no-store" });
-    if (!res.ok) return [];
+    if (!res.ok) return null;
     const data = (await res.json()) as { orders?: AccountOrder[] };
     return data.orders ?? [];
   } catch {
-    return [];
+    return null;
   }
 }

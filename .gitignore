@@ -34,3 +34,5 @@ yarn-error.log*
 # desktop app (Electron)
 /desktop/node_modules
 /desktop/dist
+
+.idea

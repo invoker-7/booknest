@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { fetchAccountOrders, fetchMe, logout } from "@/lib/apiClient";
-import { forgetAccountOrders, rememberOrders } from "@/lib/localOrders";
+import { forgetAccountOrders, replaceAccountOrders } from "@/lib/localOrders";
 import type { SessionUser } from "@/lib/types";
 
 /**
@@ -25,10 +25,11 @@ const Ctx = createContext<AuthContext | null>(null);
 // cookie บอกใบ้ที่ server ตั้งตอนล็อกอิน (ไม่ใช่ token) — ผู้ที่ไม่ได้ล็อกอินไม่ต้องยิง request เลย
 const hasHint = () => document.cookie.split("; ").includes("vx_signedin=1");
 
-/** ดึงประวัติคำสั่งซื้อของบัญชีมาไว้ในคลังบนอุปกรณ์นี้ */
+/** ทำให้คลังบนอุปกรณ์นี้ตรงกับประวัติคำสั่งซื้อของบัญชี — รายการที่ร้านลบไปแล้วจะหายจากคลังด้วย */
 async function syncAccountOrders(): Promise<void> {
   const orders = await fetchAccountOrders();
-  rememberOrders(
+  if (!orders) return; // ถามไม่สำเร็จ: คงของเดิมไว้ ไม่ลบอะไรเพราะเน็ตหลุด
+  replaceAccountOrders(
     orders.reverse().map((o) => ({
       orderNo: o.order_no,
       name: o.customer_name,
