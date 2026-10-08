@@ -76,6 +76,14 @@ export async function createSlipUploads(orderNos: string[], ext: string): Promis
   );
 }
 
+/** ไฟล์สลิปล่าสุดของคำสั่งซื้อ (ใช้ส่งให้บริการตรวจสลิป) — null เมื่อยังไม่ได้แนบหรืออ่านไม่ได้ */
+export async function readSlip(orderNo: string): Promise<Blob | null> {
+  const path = await findSlip(orderNo);
+  if (!path) return null;
+  const { data, error } = await supabaseAdmin().storage.from(SLIP_BUCKET).download(path);
+  return error ? null : data;
+}
+
 /** ลบสลิปทั้งหมดของคำสั่งซื้อ (เรียกตอนลบคำสั่งซื้อ) — ไม่มีสลิปก็ไม่ถือว่าผิดพลาด */
 export async function removeSlips(orderNo: string): Promise<void> {
   const bucket = supabaseAdmin().storage.from(SLIP_BUCKET);

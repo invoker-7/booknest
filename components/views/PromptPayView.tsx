@@ -26,6 +26,8 @@ export default function PromptPayView() {
   const [sending, setSending] = useState(false);
   const [slipError, setSlipError] = useState<TKey | "">("");
   const slipInput = useRef<HTMLInputElement>(null);
+  // ถามสถานะคำสั่งซื้อทันที (ไม่รอรอบถัดไป) — ตั้งค่าใน effect ด้านล่าง
+  const refresh = useRef<() => void>(() => {});
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -50,6 +52,7 @@ export default function PromptPayView() {
     };
 
     void load(true);
+    refresh.current = () => void load(false);
     const timer = setInterval(() => void load(false), POLL_MS);
     const onVisible = () => void load(false);
     document.addEventListener("visibilitychange", onVisible);
@@ -72,8 +75,10 @@ export default function PromptPayView() {
 
     setSending(true);
     try {
-      await uploadSlip(orders, file);
-      // แสดงผลทันที ไม่ต้องรอรอบถามสถานะถัดไป
+      const { verified } = await uploadSlip(orders, file);
+      // ระบบตรวจสลิปผ่านแล้ว: ถามสถานะทันที หน้านี้จะพาไปหน้าสั่งซื้อสำเร็จเอง
+      if (verified) return refresh.current();
+      // ยังต้องรอร้านตรวจ: แสดงว่าแนบแล้วทันที ไม่ต้องรอรอบถามสถานะถัดไป
       setState((prev) => (prev ? { ...prev, orders: prev.orders.map((o) => ({ ...o, slip: true })) } : prev));
     } catch {
       setSlipError("ppSlipFailed");

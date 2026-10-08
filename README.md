@@ -137,6 +137,7 @@ supabase/*.sql          ตาราง, function และ RLS
    | `SMTP_USER` / `SMTP_PASS` | Gmail + App Password (ต้องเปิด 2-Step Verification ก่อน) ใส่เครื่องหมายคำพูดครอบถ้ารหัสมีช่องว่าง ใช้ส่งทั้งลิงก์ดาวน์โหลดและรหัส OTP — ถ้าเว้นว่างตอน `pnpm dev` รหัส OTP จะแสดงใน log ของ server แทน ส่วน production จะเข้าสู่ระบบไม่ได้ |
    | `EMAIL_FROM` | เช่น `"VECTOR <your.gmail@gmail.com>"` |
    | `PROMPTPAY_ID` | เบอร์มือถือ 10 หลักหรือเลขประจำตัว 13 หลักที่ผูกพร้อมเพย์ของร้าน ใช้สร้าง QR รับเงิน |
+   | `EASYSLIP_API_KEY` | (ไม่บังคับ) API key ของ [EasySlip](https://developer.easyslip.com) — ตั้งแล้วระบบตรวจสลิปเองและส่งไฟล์ทันทีที่สลิปผ่าน ไม่ตั้งร้านตรวจสลิปเองในหลังบ้าน |
 
 3. **รัน** (ต้องมี Node 20+ และ pnpm — เปิดใช้ด้วย `corepack enable`)
 

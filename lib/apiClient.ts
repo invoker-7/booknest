@@ -63,8 +63,9 @@ export interface PromptPayState {
 /**
  * แนบสลิปโอนเงินให้คำสั่งซื้อชุดนี้ — ขอ URL อัปโหลดจาก server แล้วส่งรูปตรงไปที่ Storage
  * โยน Error(code) เมื่อไม่สำเร็จ (image_type, image_too_large, already_paid, upload_failed)
+ * verified = true เมื่อระบบตรวจสลิปผ่านและส่งไฟล์ให้แล้ว (ไม่ต้องรอร้าน)
  */
-export async function uploadSlip(orders: string, file: File): Promise<void> {
+export async function uploadSlip(orders: string, file: File): Promise<{ verified: boolean }> {
   const { uploads } = await postJson<{ uploads: { orderNo: string; url: string }[] }>("/api/checkout/slip", {
     orders,
     filename: file.name,
@@ -74,8 +75,9 @@ export async function uploadSlip(orders: string, file: File): Promise<void> {
     uploads.map((u) => fetch(u.url, { method: "PUT", headers: { "Content-Type": file.type || "image/jpeg" }, body: file }))
   );
   if (sent.some((res) => !res.ok)) throw new Error("upload_failed");
-  // แจ้งร้านทางอีเมลว่ามีสลิปรอตรวจ — พลาดก็ไม่เป็นไร ร้านยังเห็นตัวเลขแจ้งเตือนในหลังบ้าน
-  void postJson("/api/checkout/slip/done", { orders }).catch(() => {});
+  // server ตรวจสลิปอัตโนมัติถ้าร้านเปิดไว้ ไม่เช่นนั้นแจ้งร้านให้ตรวจเอง — เรียกพลาดก็ไม่เป็นไร สลิปแนบไปแล้ว
+  const done = await postJson<{ verified?: boolean }>("/api/checkout/slip/done", { orders }).catch(() => null);
+  return { verified: done?.verified === true };
 }
 
 /** QR พร้อมเพย์และสถานะของคำสั่งซื้อชุดนี้ — คืน null เมื่อเปิดไม่ได้ */
