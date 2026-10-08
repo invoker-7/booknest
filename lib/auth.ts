@@ -163,6 +163,13 @@ export async function getSessionUser(): Promise<SessionUser | null> {
       .retry(false)
       .maybeSingle<{ name: string | null; role: UserRole }>();
 
+    // ADMIN_EMAILS คือรายชื่อผู้ดูแลตั้งต้น: เข้าสู่ระบบครั้งแรกแล้วบันทึกลงคอลัมน์ role ด้วย
+    // ฐานข้อมูลจะได้ตรงกับสิทธิ์ที่ใช้จริง (ไม่ใช่ทุกคนเป็น customer ทั้งที่บางคนเข้าหลังบ้านได้)
+    if (profile && profile.role !== "admin" && isEnvAdmin(email)) {
+      const { error } = await supabaseAdmin().from("profiles").update({ role: "admin" }).eq("id", user.id);
+      if (error) console.error("promote env admin:", error.message);
+    }
+
     return {
       id: user.id,
       email,

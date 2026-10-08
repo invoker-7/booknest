@@ -78,7 +78,8 @@ export function Meta({ k, v }: { k: string; v: ReactNode }) {
 
 export function Rating({ value, count, compact = false }: { value: number; count: number; compact?: boolean }) {
   const { t } = useLang();
-  if (!value) return <span className="rating muted">{t("noReviewsYet")}</span>;
+  // ยังไม่มีรีวิว = ยังไม่มีคะแนน (ค่าเริ่มต้นในฐานข้อมูลไม่ใช่คะแนนจริง)
+  if (!value || !count) return <span className="rating muted">{t("noReviewsYet")}</span>;
   return (
     <span className="rating" aria-label={`${value} / 5 · ${count} ${t("reviews")}`}>
       <Star size={14} />

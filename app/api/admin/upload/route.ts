@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/auth";
 import { readJsonBody } from "@/lib/api";
 import { slugify } from "@/lib/admin";
+import { previewFolder } from "@/lib/catalogServer";
 import { EBOOK_BUCKET, IMAGE_BUCKET, imageBaseUrl, supabaseAdmin } from "@/lib/supabase";
 import { IMAGE_EXTENSIONS, MAX_IMAGE_BYTES, MAX_UPLOAD_BYTES, UPLOAD_EXTENSIONS } from "@/lib/format";
 
@@ -23,10 +24,11 @@ async function ensureImageBucket(): Promise<void> {
 }
 
 /**
- * POST /api/admin/upload  { filename, size, kind? } -> { path, url, publicUrl? }
+ * POST /api/admin/upload  { filename, size, kind?, productId? } -> { path, url, publicUrl? }
  * ออก URL สำหรับอัปโหลดครั้งเดียว เบราว์เซอร์ส่งไฟล์ตรงไปที่ Storage
  * ไฟล์จึงไม่ผ่าน serverless function (ไม่ติดเพดานขนาด body และไม่เปลืองเวลา function)
  * kind = "image" -> รูปสินค้า เก็บใน bucket สาธารณะ, ไม่ระบุ -> ไฟล์สินค้าที่ขาย เก็บใน bucket private
+ * kind = "preview" + productId -> ภาพตัวอย่างเนื้อหา เก็บในโฟลเดอร์ของสินค้านั้นใน bucket สาธารณะ
  */
 export async function POST(req: Request) {
   if (!(await getAdmin())) return NextResponse.json({ error: "forbidden" }, { status: 403 });
@@ -34,7 +36,10 @@ export async function POST(req: Request) {
   const body = await readJsonBody(req);
   const filename = String(body?.filename || "");
   const size = Number(body?.size);
-  const image = body?.kind === "image";
+  const preview = body?.kind === "preview";
+  const image = body?.kind === "image" || preview;
+  const productId = String(body?.productId || "");
+  if (preview && !/^[a-z0-9-]+$/.test(productId)) return NextResponse.json({ error: "invalid_input" }, { status: 400 });
   const dot = filename.lastIndexOf(".");
   const ext = dot > 0 ? filename.slice(dot + 1).toLowerCase() : "";
 
@@ -46,7 +51,8 @@ export async function POST(req: Request) {
   }
 
   // ชื่อไฟล์สุ่มต่อท้าย: ไม่ทับไฟล์ของสินค้าอื่น และเดา path ไม่ได้
-  const path = `${slugify(filename.slice(0, dot)) || "file"}-${randomBytes(4).toString("hex")}.${ext}`;
+  const file = `${slugify(filename.slice(0, dot)) || "file"}-${randomBytes(4).toString("hex")}.${ext}`;
+  const path = preview ? `${previewFolder(productId)}/${file}` : file;
 
   if (image) {
     try {

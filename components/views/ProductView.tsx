@@ -1,6 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
+import { Fragment } from "react";
 import type { ReactNode } from "react";
 import { useLang } from "@/components/LangProvider";
 import { useStore } from "@/components/StoreProvider";
@@ -35,13 +37,39 @@ function Doc({ no, label, title, children }: { no: string; label: string; title:
   );
 }
 
+/**
+ * คำอธิบายยาวของสินค้า: เจ้าของร้านพิมพ์เป็นข้อความธรรมดา
+ * เว้นบรรทัด = ขึ้นย่อหน้าใหม่ และบรรทัดที่ขึ้นต้นด้วย "- " ต่อกัน = รายการ
+ */
+function LongText({ text }: { text: string }) {
+  const blocks = text.split(/\n{2,}/).map((b) => b.trim()).filter(Boolean);
+  return (
+    <>
+      {blocks.map((block, i) => {
+        const lines = block.split("\n").map((l) => l.trim());
+        const items = lines.filter((l) => l.startsWith("- "));
+        if (items.length === 0) return <p key={i}>{block}</p>;
+        const lead = lines.filter((l) => !l.startsWith("- ")).join(" ");
+        return (
+          <Fragment key={i}>
+            {lead && <p>{lead}</p>}
+            <ul className="pd-list">{items.map((item) => <li key={item}>{item.slice(2)}</li>)}</ul>
+          </Fragment>
+        );
+      })}
+    </>
+  );
+}
+
 interface ProductViewProps {
   product: Product;
   related: Product[];
+  /** URL ภาพตัวอย่างเนื้อหา (หน้าตัวอย่าง ภาพหน้าจอ) */
+  previews: string[];
   live: boolean;
 }
 
-export default function ProductView({ product: p, related, live }: ProductViewProps) {
+export default function ProductView({ product: p, related, live, previews }: ProductViewProps) {
   const { t, lang } = useLang();
   const { ready, inCart, isSaved, addToCart, toggleSaved, owned, notify } = useStore();
   const requireLogin = useRequireLogin();
@@ -170,10 +198,25 @@ export default function ProductView({ product: p, related, live }: ProductViewPr
         </div>
 
         <Doc no="01" label="Overview" title={t("overview")}>
-          <p>{pick(p, "long", lang)}</p>
+          <LongText text={pick(p, "long", lang)} />
         </Doc>
 
-        <Doc no="02" label="Reviews" title={t("reviewsTitle")}>
+        {previews.length > 0 && (
+          <Doc no="02" label="Preview" title={t("previewTitle")}>
+            <p className="muted pv-note">{t("previewNote")}</p>
+            <ul className="pv-grid">
+              {previews.map((src, i) => (
+                <li key={src}>
+                  <a href={src} target="_blank" rel="noreferrer" aria-label={`${t("previewTitle")} ${i + 1}`}>
+                    <Image src={src} alt="" width={960} height={720} sizes="(max-width: 760px) 100vw, 460px" />
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </Doc>
+        )}
+
+        <Doc no={previews.length > 0 ? "03" : "02"} label="Reviews" title={t("reviewsTitle")}>
           {p.reviews > 0 ? (
             <>
               <div className="rev-summary">
@@ -192,7 +235,7 @@ export default function ProductView({ product: p, related, live }: ProductViewPr
           )}
         </Doc>
 
-        <Doc no="03" label="FAQ" title={t("faq")}>
+        <Doc no={previews.length > 0 ? "04" : "03"} label="FAQ" title={t("faq")}>
           <div className="faq">
             {FAQ.map((k) => (
               <details key={k}>

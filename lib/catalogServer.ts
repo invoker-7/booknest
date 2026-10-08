@@ -1,5 +1,5 @@
 import "server-only";
-import { getBooks, getBook, getShop, isSupabaseConfigured } from "@/lib/supabase";
+import { getBooks, getBook, getShop, IMAGE_BUCKET, imageBaseUrl, isSupabaseConfigured, supabaseAdmin } from "@/lib/supabase";
 import { enrich, creatorsFrom } from "@/lib/catalog";
 import type { Creator, Product } from "@/lib/types";
 
@@ -52,6 +52,34 @@ export async function loadProduct(id: string): Promise<Catalog & { product: Prod
     if (row) product = enrich(row);
   }
   return { product: product || null, products, live };
+}
+
+/** โฟลเดอร์ภาพตัวอย่างเนื้อหาของสินค้าใน bucket รูปสินค้า (สาธารณะ) */
+export const previewFolder = (productId: string): string => `previews/${productId}`;
+
+export interface ProductPreview {
+  name: string;
+  url: string;
+}
+
+/**
+ * ภาพตัวอย่างเนื้อหาของสินค้า เรียงตามชื่อไฟล์ — [] เมื่อไม่มี
+ * เก็บเป็นไฟล์ในโฟลเดอร์ของสินค้า จึงไม่ต้องมีคอลัมน์เพิ่มในฐานข้อมูล: มีไฟล์ในโฟลเดอร์ = มีภาพตัวอย่าง
+ */
+export async function loadPreviews(productId: string): Promise<ProductPreview[]> {
+  if (!isSupabaseConfigured || !/^[a-z0-9-]+$/.test(productId)) return [];
+  try {
+    const folder = previewFolder(productId);
+    const { data, error } = await supabaseAdmin()
+      .storage.from(IMAGE_BUCKET)
+      .list(folder, { limit: 12, sortBy: { column: "name", order: "asc" } });
+    if (error || !data) return [];
+    return data
+      .filter((file) => /\.(jpe?g|png|webp)$/i.test(file.name))
+      .map((file) => ({ name: file.name, url: `${imageBaseUrl()}${folder}/${encodeURIComponent(file.name)}` }));
+  } catch {
+    return [];
+  }
 }
 
 export async function loadCreators(): Promise<Catalog & { creators: Creator[] }> {

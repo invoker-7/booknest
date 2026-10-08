@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { loadProduct } from "@/lib/catalogServer";
+import { loadPreviews, loadProduct } from "@/lib/catalogServer";
 import { relatedTo } from "@/lib/catalog";
 import ProductView from "@/components/views/ProductView";
 
@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
 }
 
 export default async function ProductPage({ params }: { params: { id: string } }) {
-  const { product, products, live } = await loadProduct(params.id);
+  const [{ product, products, live }, previews] = await Promise.all([loadProduct(params.id), loadPreviews(params.id)]);
   if (!product) notFound();
-  return <ProductView product={product} related={relatedTo(product, products)} live={live} />;
+  return <ProductView product={product} related={relatedTo(product, products)} live={live} previews={previews.map((p) => p.url)} />;
 }

@@ -597,6 +597,17 @@ html[lang="th"] .pd-buy h1 { line-height: 1.25; }
 
 /* ส่วนเนื้อหาแบบมีป้ายหัวข้อด้านซ้าย */
 .doc { border-top: 1px solid var(--ink); display: grid; grid-template-columns: 3fr 9fr; gap: 32px; padding: 20px 0 72px; }
+.doc-body > p + p, .doc-body > ul + p { margin-top: 16px; }
+.pd-list { list-style: disc; padding-left: 22px; margin-top: 10px; display: grid; gap: 6px; color: var(--ink-2); font-size: 17px; line-height: 1.6; }
+.pv-note { font-size: 14px; margin-bottom: 16px; }
+.pv-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.pv-grid a { display: block; border: 1px solid var(--line); background: var(--surface); overflow: hidden; }
+.pv-grid a:hover { border-color: var(--ink); }
+.pv-grid img { width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; object-position: top; }
+.pv-admin { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin: 16px 0; }
+.pv-admin li { position: relative; border: 1px solid var(--line); }
+.pv-admin img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; object-position: top; }
+.pv-admin .btn { position: absolute; top: 6px; right: 6px; min-height: 32px; padding: 0 8px; }
 .doc-label { font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
 .doc-label b { display: block; color: var(--blue); font-weight: 500; margin-bottom: 6px; }
 .doc-label h2 { font-family: var(--sans); font-size: 22px; font-weight: 500; text-transform: none; letter-spacing: -.01em; color: var(--ink); line-height: 1.3; }
@@ -896,6 +907,7 @@ html[lang="th"] .article h1 { line-height: 1.25; }
   .ptiles.compact .ptile-foot { flex-direction: column; align-items: flex-start; gap: 4px; }
   .ptiles.compact .ptile-meta span + span { display: none; }
 
+  .pv-grid { grid-template-columns: 1fr; }
   .lead { grid-template-columns: 1fr; gap: 32px; }
   .lead-copy p { font-size: 16px; }
   .lead-copy.wide { margin-bottom: 28px; }
