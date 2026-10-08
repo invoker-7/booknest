@@ -1,10 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import { Alert } from "@/components/Icons";
 import { useLang } from "@/components/LangProvider";
-import { Notice } from "@/components/ui";
+import { Button, Notice } from "@/components/ui";
+import { startEmailLogin } from "@/lib/apiClient";
+import { isEmail } from "@/lib/format";
 
 interface AuthViewProps {
   /** ปลายทางหลังล็อกอิน (ตรวจที่ server แล้วว่าเป็น path ภายในเว็บ) */
@@ -26,16 +29,38 @@ function GoogleMark() {
   );
 }
 
-/** หน้าเข้าสู่ระบบ ขั้นที่ 1: Google เท่านั้น (ขั้นที่ 2 คือ OtpView) */
+/** หน้าเข้าสู่ระบบ ขั้นที่ 1: เลือก Google หรือกรอกอีเมล (ขั้นที่ 2 คือ OtpView — กรอกรหัสที่ส่งทางอีเมล) */
 export default function AuthView({ next, google, configured, oauthError = false }: AuthViewProps) {
   const { t } = useLang();
   const router = useRouter();
   const { ready, user } = useAuth();
 
+  const [email, setEmail] = useState("");
+  const [touched, setTouched] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const emailBad = touched && !isEmail(email);
+
   // ล็อกอินอยู่แล้ว ไม่ต้องเห็นหน้านี้
   useEffect(() => {
     if (ready && user) router.replace(next);
   }, [ready, user, next, router]);
+
+  /** ขอรหัสยืนยันทางอีเมล: สำเร็จแล้วโหลดหน้านี้ใหม่ server จะแสดงขั้นกรอกรหัสแทน */
+  async function submitEmail(e: FormEvent) {
+    e.preventDefault();
+    setTouched(true);
+    setFailed(false);
+    if (!isEmail(email)) return;
+    setSending(true);
+    try {
+      await startEmailLogin(email.trim());
+      router.refresh();
+    } catch {
+      setFailed(true);
+      setSending(false);
+    }
+  }
 
   return (
     <div className="wrap page-pad">
@@ -50,10 +75,6 @@ export default function AuthView({ next, google, configured, oauthError = false 
           <div className="auth-gap">
             <Notice tone="warn" title={t("authNotConfigured")}>{t("authNotConfiguredBody")}</Notice>
           </div>
-        ) : !google ? (
-          <div className="auth-gap">
-            <Notice tone="warn" title={t("authGoogleOff")}>{t("authGoogleOffBody")}</Notice>
-          </div>
         ) : (
           <div className="panel">
             {oauthError && (
@@ -61,10 +82,40 @@ export default function AuthView({ next, google, configured, oauthError = false 
                 <Notice tone="error">{t("authErrOauth")}</Notice>
               </div>
             )}
-            {/* <a> ธรรมดา: ต้องโหลดทั้งหน้าเพื่อไปหน้ายินยอมของ Google */}
-            <a className="btn secondary block" href={`/api/auth/google?next=${encodeURIComponent(next)}`}>
-              <GoogleMark /> {t("continueGoogle")}
-            </a>
+            {google && (
+              <>
+                {/* <a> ธรรมดา: ต้องโหลดทั้งหน้าเพื่อไปหน้ายินยอมของ Google */}
+                <a className="btn secondary block" href={`/api/auth/google?next=${encodeURIComponent(next)}`}>
+                  <GoogleMark /> {t("continueGoogle")}
+                </a>
+                <div className="auth-or">{t("authOr")}</div>
+              </>
+            )}
+
+            <form onSubmit={submitEmail} noValidate>
+              {failed && (
+                <div className="auth-gap">
+                  <Notice tone="error">{t("loginEmailFail")}</Notice>
+                </div>
+              )}
+              <div className={`field${emailBad ? " invalid" : ""}`}>
+                <label htmlFor="login-email">{t("email")}</label>
+                <input
+                  id="login-email"
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  placeholder={t("emailPh")}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  aria-invalid={emailBad || undefined}
+                  aria-describedby={emailBad ? "login-email-err" : undefined}
+                  required
+                />
+                <span className="err" id="login-email-err"><Alert size={14} /> {t("errEmail")}</span>
+              </div>
+              <Button type="submit" block loading={sending} loadingText={t("otpSending")}>{t("continueEmail")}</Button>
+            </form>
             <p className="auth-step muted">{t("loginOtpNote")}</p>
           </div>
         )}

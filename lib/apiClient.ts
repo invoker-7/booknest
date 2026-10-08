@@ -146,6 +146,9 @@ export async function resendOtp(auto = false): Promise<{ ok: boolean; error?: st
   }
 }
 
+/** เข้าสู่ระบบด้วยอีเมล ขั้นที่ 1: ขอรหัสยืนยัน — สำเร็จแล้วหน้าเข้าสู่ระบบจะไปขั้นกรอกรหัส */
+export const startEmailLogin = (email: string) => postJson<{ ok: true }>("/api/auth/email", { email });
+
 export const logout = () => postJson<{ ok: true }>("/api/auth/logout");
 
 /** ประวัติคำสั่งซื้อของบัญชี — คืน [] เมื่อไม่สำเร็จ */

@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname, useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { fetchAccountOrders, fetchMe, logout } from "@/lib/apiClient";
 import { forgetAccountOrders, rememberOrders } from "@/lib/localOrders";
@@ -79,4 +80,19 @@ export function useAuth(): AuthContext {
   const v = useContext(Ctx);
   if (!v) throw new Error("useAuth must be used inside <AuthProvider>");
   return v;
+}
+
+/**
+ * ใช้ก่อนการกระทำของสมาชิก (ใส่ตะกร้า บันทึกรายการ): คืน true เมื่อล็อกอินอยู่
+ * ยังไม่ล็อกอินจะพาไปหน้าเข้าสู่ระบบ แล้วกลับมาหน้าเดิมหลังล็อกอินเสร็จ
+ */
+export function useRequireLogin(): () => boolean {
+  const { user } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname() || "/";
+  return useCallback(() => {
+    if (user) return true;
+    router.push(`/login?next=${encodeURIComponent(pathname)}`);
+    return false;
+  }, [user, router, pathname]);
 }

@@ -80,6 +80,41 @@ export function clearOtpVerified(): void {
   cookies().delete(VERIFIED_COOKIE);
 }
 
+/* ---------- cookie "กำลังเข้าสู่ระบบด้วยอีเมล" ---------- */
+
+const PENDING_COOKIE = "vx_pending";
+const PENDING_SECONDS = 60 * 15;
+
+/**
+ * เข้าสู่ระบบด้วยอีเมล: ระหว่างรอกรอกรหัสยังไม่มี session ของ Supabase
+ * cookie นี้บอกแค่ว่าเบราว์เซอร์นี้กำลังยืนยันบัญชีไหน (เซ็นไว้ แก้เป็นบัญชีอื่นไม่ได้) — ไม่ได้ให้สิทธิ์อะไร
+ */
+export function setPendingLogin(userId: string): void {
+  const exp = String(Date.now() + PENDING_SECONDS * 1000);
+  cookies().set(PENDING_COOKIE, `${userId}.${exp}.${sign(`pending:${userId}:${exp}`)}`, {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: PENDING_SECONDS,
+  });
+}
+
+/** user id ที่กำลังรอกรอกรหัส — null เมื่อไม่มี หมดอายุ หรือถูกแก้ */
+export function readPendingLogin(): string | null {
+  const [userId, exp, sig] = (cookies().get(PENDING_COOKIE)?.value || "").split(".");
+  if (!userId || !exp || !sig || !(Number(exp) > Date.now())) return null;
+  try {
+    return safeEqual(sig, sign(`pending:${userId}:${exp}`)) ? userId : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearPendingLogin(): void {
+  cookies().delete(PENDING_COOKIE);
+}
+
 /* ---------- ออกรหัส / ตรวจรหัส ---------- */
 
 /** เข้าสู่ระบบรอบใหม่: ทิ้งรหัสเดิม ให้หน้ากรอกรหัสขอรหัสใหม่เอง */

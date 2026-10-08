@@ -36,6 +36,7 @@
   --hdr: 68px;
   --tabbar: 64px;
   --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
 }
 
 * { box-sizing: border-box; }
@@ -51,6 +52,10 @@ body {
   text-rendering: optimizeLegibility;
 }
 body.lock { overflow: hidden; }
+/* เปิดในแอปที่วาดเว็บเต็มจอใต้รอยบาก/Dynamic Island (WebView ของแอปมือถือ): เว้นด้านบนและถมด้วยสีแถบบนของร้าน
+   เบราว์เซอร์ปกติ --safe-t เป็น 0 จึงไม่มีผลอะไร */
+body { padding-top: var(--safe-t); }
+body::before { content: ""; position: fixed; top: 0; left: 0; right: 0; height: var(--safe-t); background: var(--navy); z-index: 80; }
 h1, h2, h3, h4, p, ul, ol, dl, dd, figure { margin: 0; }
 ul, ol { padding: 0; list-style: none; }
 button, input, select, textarea { font: inherit; color: inherit; }
@@ -101,7 +106,7 @@ main { min-height: calc(100vh - var(--hdr) - 34px); min-height: calc(100svh - va
 .utility-dot { display: inline-block; width: 6px; height: 6px; background: #E0A33A; margin-right: 6px; vertical-align: 1px; }
 
 .hdr {
-  position: sticky; top: 0; z-index: 40;
+  position: sticky; top: var(--safe-t); z-index: 40;
   background: rgba(244, 243, 239, .96);
   backdrop-filter: saturate(1.2) blur(8px);
   border-bottom: 1px solid var(--line);
@@ -148,7 +153,7 @@ main { min-height: calc(100vh - var(--hdr) - 34px); min-height: calc(100svh - va
 .iconbtn:hover { background: var(--sunk); color: var(--ink); }
 
 .mmenu {
-  position: fixed; inset: calc(var(--hdr) + 34px) 0 0; z-index: 39; background: var(--bg);
+  position: fixed; inset: calc(var(--hdr) + 34px + var(--safe-t)) 0 0; z-index: 39; background: var(--bg);
   display: flex; flex-direction: column; justify-content: space-between; overflow: auto;
   border-top: 1px solid var(--line);
 }

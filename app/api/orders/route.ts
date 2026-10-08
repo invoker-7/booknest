@@ -21,9 +21,10 @@ export async function POST(req: Request) {
 
   const bookId = String(body.bookId || "").trim();
   const name = String(body.name || "").trim();
-  // ล็อกอินอยู่: ผูกคำสั่งซื้อกับบัญชี และใช้อีเมลของบัญชีเสมอ (ไฟล์ส่งไปที่อีเมลนี้)
+  // ซื้อได้เฉพาะสมาชิก: คำสั่งซื้อผูกกับบัญชี และใช้อีเมลของบัญชีเสมอ (ไฟล์ส่งไปที่อีเมลนี้)
   const user = await getSessionIdentity();
-  const email = user?.email || normalizeEmail(body.email);
+  if (!user) return NextResponse.json({ error: "login_required" }, { status: 401 });
+  const email = user.email || normalizeEmail(body.email);
 
   if (!bookId || !name || !isEmail(email)) {
     return NextResponse.json({ error: "invalid_input" }, { status: 400 });
@@ -55,7 +56,7 @@ export async function POST(req: Request) {
     customer_email: email,
     amount: book.price,
     status: "PENDING",
-    ...(user ? { user_id: user.id } : {}),
+    user_id: user.id,
   });
 
   if (insErr) {

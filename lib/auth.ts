@@ -3,13 +3,13 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createServerClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { hasOtpCookie, isOtpVerified } from "@/lib/otp";
+import { hasOtpCookie, isOtpVerified, readPendingLogin } from "@/lib/otp";
 import { isSupabaseConfigured, supabaseAdmin } from "@/lib/supabase";
 import type { SessionUser, UserRole } from "@/lib/types";
 
 /**
  * การยืนยันตัวตนทั้งหมดทำที่ฝั่ง server
- * - เข้าสู่ระบบได้ทางเดียวคือ Google แล้วต้องผ่านรหัส OTP ทางอีเมลอีกชั้น (lib/otp.ts) จึงนับว่าล็อกอิน
+ * - เข้าสู่ระบบได้สองทาง: Google หรือกรอกอีเมล — ทั้งสองทางต้องผ่านรหัส OTP ทางอีเมล (lib/otp.ts) จึงนับว่าล็อกอิน
  * - session เก็บใน cookie แบบ httpOnly (เบราว์เซอร์ไม่ต้องโหลด Supabase SDK และ JavaScript อ่าน token ไม่ได้)
  * - ใช้ anon key สำหรับ session ของผู้ใช้ ส่วน secret key ใช้เฉพาะงานที่ตรวจสิทธิ์แล้ว
  */
@@ -89,10 +89,69 @@ async function readIdentity(): Promise<SessionIdentity | null> {
   }
 }
 
-/** ผ่าน Google แล้วแต่ยังไม่ได้กรอก OTP — ใช้เฉพาะหน้าและ API ของขั้นกรอกรหัส */
+export interface PendingLogin {
+  user: SessionIdentity;
+  /** google = มี session จาก Google แล้ว, email = ยังไม่มี session จนกว่าจะกรอกรหัสถูก */
+  via: "google" | "email";
+}
+
+/** กำลังรอกรอก OTP (หลัง Google หรือหลังกรอกอีเมล) — ใช้เฉพาะหน้าและ API ของขั้นกรอกรหัส */
+export async function getPendingLogin(): Promise<PendingLogin | null> {
+  const viaGoogle = await readIdentity();
+  if (viaGoogle) return isOtpVerified(viaGoogle.id) ? null : { user: viaGoogle, via: "google" };
+
+  const userId = readPendingLogin();
+  if (!userId) return null;
+  const { data: row } = await supabaseAdmin()
+    .from("profiles")
+    .select("id, email, name")
+    .eq("id", userId)
+    .retry(false)
+    .maybeSingle<SessionIdentity>();
+  return row?.email ? { user: { id: row.id, email: row.email.toLowerCase(), name: row.name || "" }, via: "email" } : null;
+}
+
 export async function getPendingIdentity(): Promise<SessionIdentity | null> {
-  const user = await readIdentity();
-  return user && !isOtpVerified(user.id) ? user : null;
+  return (await getPendingLogin())?.user ?? null;
+}
+
+/**
+ * บัญชีของอีเมลนี้ — ยังไม่มีก็สร้างให้ (เข้าสู่ระบบด้วยอีเมลครั้งแรก = สมัครสมาชิก)
+ * การเป็นเจ้าของอีเมลพิสูจน์ด้วย OTP ในขั้นถัดไป บัญชีที่สร้างไว้เฉย ๆ จึงยังเข้าไม่ได้
+ */
+export async function findOrCreateEmailUser(email: string): Promise<SessionIdentity | null> {
+  const db = supabaseAdmin();
+  const find = async () => {
+    const { data } = await db.from("profiles").select("id, email, name").eq("email", email).limit(1).retry(false);
+    const row = (data as SessionIdentity[] | null)?.[0];
+    return row ? { id: row.id, email, name: row.name || "" } : null;
+  };
+
+  const existing = await find();
+  if (existing) return existing;
+
+  const name = email.split("@")[0] ?? "";
+  const { data, error } = await db.auth.admin.createUser({ email, email_confirm: true, user_metadata: { name } });
+  if (data?.user) return { id: data.user.id, email, name };
+  // มีคนสร้างบัญชีนี้ไปพร้อมกันพอดี: อ่านอีกครั้ง
+  console.error("findOrCreateEmailUser:", error?.message);
+  return find();
+}
+
+/**
+ * ออก session ของ Supabase ให้บัญชีที่เพิ่งยืนยันอีเมลด้วย OTP ของเราเอง (เรียกหลังตรวจรหัสผ่านแล้วเท่านั้น)
+ * ขอ token แบบ magic link จาก Admin API แล้วแลกเป็น session ทันทีที่ server — ไม่มีอีเมลจาก Supabase ถูกส่ง
+ */
+export async function createEmailSession(email: string): Promise<boolean> {
+  const { data, error } = await supabaseAdmin().auth.admin.generateLink({ type: "magiclink", email });
+  const tokenHash = data?.properties?.hashed_token;
+  if (error || !tokenHash) {
+    console.error("createEmailSession link:", error?.message);
+    return false;
+  }
+  const { error: verifyError } = await supabaseSession().auth.verifyOtp({ token_hash: tokenHash, type: "magiclink" });
+  if (verifyError) console.error("createEmailSession verify:", verifyError.message);
+  return !verifyError;
 }
 
 /** ผู้ที่ล็อกอินครบสองขั้นแล้ว — คืนเฉพาะ id + อีเมล (เร็วกว่า getSessionUser หนึ่ง query) */

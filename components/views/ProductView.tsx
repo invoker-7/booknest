@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { useLang } from "@/components/LangProvider";
 import { useStore } from "@/components/StoreProvider";
+import { useRequireLogin } from "@/components/AuthProvider";
 import ProductArt from "@/components/ProductArt";
 import { Bookmark, Cart, Check, Lock, Star, Library } from "@/components/Icons";
 import { Button, LinkButton, Meta, Price, Rating, ProductTile, PreviewBanner, Notice } from "@/components/ui";
@@ -43,6 +44,7 @@ interface ProductViewProps {
 export default function ProductView({ product: p, related, live }: ProductViewProps) {
   const { t, lang } = useLang();
   const { ready, inCart, isSaved, addToCart, toggleSaved, owned, notify } = useStore();
+  const requireLogin = useRequireLogin();
 
   const title = pick(p, "title", lang);
   const catLabel = t(`cat_${p.category}`);
@@ -53,6 +55,7 @@ export default function ProductView({ product: p, related, live }: ProductViewPr
   const savedNow = ready && isSaved(p.id);
 
   function add() {
+    if (!requireLogin()) return;
     addToCart(p);
     notify(t("addedToCart"));
   }
@@ -78,7 +81,7 @@ export default function ProductView({ product: p, related, live }: ProductViewPr
       aria-pressed={savedNow}
       aria-label={savedNow ? t("wishlistRemove") : t("wishlistAdd")}
       title={savedNow ? t("wishlistRemove") : t("wishlistAdd")}
-      onClick={() => toggleSaved(p)}
+      onClick={() => requireLogin() && toggleSaved(p)}
     >
       <Bookmark filled={savedNow} />
     </button>

@@ -23,7 +23,7 @@ export default function CheckoutView({ live, pay: payOptions }: { live: boolean;
   const { t, lang } = useLang();
   const router = useRouter();
   const { ready, cart, orders, removeManyFromCart } = useStore();
-  const { user } = useAuth();
+  const { ready: authReady, user } = useAuth();
 
   const [step, setStep] = useState<1 | 2>(1); // 1 = ข้อมูลผู้ซื้อ, 2 = ชำระเงิน
   const [name, setName] = useState("");
@@ -58,7 +58,13 @@ export default function CheckoutView({ live, pay: payOptions }: { live: boolean;
     setName((prev) => prev || user.name);
   }, [user]);
 
-  if (!ready) return <div className="wrap page-pad" aria-busy="true" />;
+  // ซื้อได้เฉพาะสมาชิก: ยังไม่ล็อกอินให้ไปเข้าสู่ระบบก่อนแล้วกลับมาหน้านี้
+  const mustLogin = authReady && !user;
+  useEffect(() => {
+    if (mustLogin) router.replace("/login?next=/checkout");
+  }, [mustLogin, router]);
+
+  if (!ready || !authReady || mustLogin) return <div className="wrap page-pad" aria-busy="true" />;
 
   if (cart.length === 0 && !leaving.current) {
     return (

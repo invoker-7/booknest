@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isGoogleEnabled, safeNext, setSignedInHint, supabaseSession } from "@/lib/auth";
-import { clearOtpVerified, discardOtp } from "@/lib/otp";
+import { clearOtpVerified, clearPendingLogin, discardOtp } from "@/lib/otp";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,6 +20,7 @@ export async function GET(req: Request) {
     if (!error && data?.user) {
       // เข้าสู่ระบบใหม่ทุกครั้งต้องกรอกรหัสใหม่ แม้เครื่องนี้เคยผ่านมาแล้ว
       clearOtpVerified();
+      clearPendingLogin();
       setSignedInHint(false);
       await discardOtp(data.user.id);
 
