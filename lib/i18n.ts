@@ -379,7 +379,7 @@ export const LANGS: Lang[] = ["th", "en"];
   authErrOauth: "เข้าสู่ระบบด้วย Google ไม่สำเร็จ ลองอีกครั้ง",
   authGoogleOff: "ยังไม่ได้เปิดการเข้าสู่ระบบด้วย Google",
   authGoogleOffBody: "เปิด Google provider ใน Supabase > Authentication > Providers แล้วตั้ง AUTH_GOOGLE_ENABLED=true",
-  loginOtpNote: "ทั้งสองวิธีเราจะส่งรหัสยืนยัน 6 หลักไปที่อีเมลของคุณ อีเมลที่ยังไม่เคยใช้จะได้บัญชีใหม่ให้เอง ไม่ต้องตั้งรหัสผ่าน",
+  loginOtpNote: "เข้าด้วย Google ได้ทันที ถ้าเข้าด้วยอีเมลเราจะส่งรหัสยืนยัน 6 หลักไปให้ อีเมลที่ยังไม่เคยใช้จะได้บัญชีใหม่ให้เอง ไม่ต้องตั้งรหัสผ่าน",
   otpTitle: "ยืนยันอีเมล",
   otpSub: "กรอกรหัส 6 หลักที่ส่งไปยัง",
   otpLabel: "รหัสยืนยัน",

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAuthConfigured, setSignedInHint, supabaseSession } from "@/lib/auth";
-import { clearOtpVerified, clearPendingLogin } from "@/lib/otp";
+import { clearPendingLogin } from "@/lib/otp";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,7 +11,6 @@ export async function POST() {
     const { error } = await supabaseSession().auth.signOut({ scope: "local" });
     if (error) console.error("logout:", error.message);
   }
-  clearOtpVerified();
   clearPendingLogin();
   setSignedInHint(false);
   return NextResponse.json({ ok: true });

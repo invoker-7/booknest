@@ -361,7 +361,7 @@ export const EN: Record<TKey, string> = {
   authErrOauth: "Google sign-in didn't complete. Try again.",
   authGoogleOff: "Google sign-in isn't turned on yet",
   authGoogleOffBody: "Enable the Google provider in Supabase > Authentication > Providers, then set AUTH_GOOGLE_ENABLED=true.",
-  loginOtpNote: "Either way we email you a 6-digit code. A new email gets an account automatically, with no password to set.",
+  loginOtpNote: "Google signs you in straight away. With email we send you a 6-digit code; a new email gets an account automatically, with no password to set.",
   otpTitle: "Verify your email",
   otpSub: "Enter the 6-digit code we sent to",
   otpLabel: "Verification code",

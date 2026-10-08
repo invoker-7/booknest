@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { findOrCreateEmailUser, isAuthConfigured, setSignedInHint, supabaseSession } from "@/lib/auth";
 import { normalizeEmail, readJsonBody } from "@/lib/api";
 import { isEmail } from "@/lib/format";
-import { clearOtpVerified, issueOtp, setPendingLogin } from "@/lib/otp";
+import { issueOtp, setPendingLogin } from "@/lib/otp";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,7 +26,6 @@ export async function POST(req: Request) {
 
     // เริ่มเข้าสู่ระบบรอบใหม่: ทิ้ง session เดิมของเบราว์เซอร์นี้ (เช่น ค้างจากขั้น Google ของอีกบัญชี)
     await supabaseSession().auth.signOut({ scope: "local" }).catch(() => {});
-    clearOtpVerified();
     setSignedInHint(false);
 
     // reuse: มีรหัสที่ยังใช้ได้อยู่จะไม่ส่งซ้ำ — กดซ้ำหรือมีคนใส่อีเมลนี้รัว ๆ ก็ไม่ได้อีเมลเพิ่ม

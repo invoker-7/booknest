@@ -5,18 +5,16 @@ import { sendOtpEmail } from "@/lib/email";
 import { supabaseAdmin } from "@/lib/supabase";
 
 /**
- * ขั้นที่สองของการเข้าสู่ระบบ: หลัง Google ยืนยันตัวตนแล้ว ต้องกรอกรหัส 6 หลักที่ส่งไปยังอีเมลของบัญชี
+ * รหัสยืนยันทางอีเมลสำหรับการเข้าสู่ระบบด้วยอีเมล (ไม่มีรหัสผ่าน): กรอกอีเมล แล้วกรอกรหัส 6 หลักที่ส่งไป
+ * ผู้ที่เข้าด้วย Google (SSO) ไม่ต้องกรอกรหัส — Google ยืนยันตัวตนให้แล้ว
  * - รหัสเก็บในตาราง login_otps แบบ hash (หนึ่งแถวต่อหนึ่งบัญชี) พร้อมตัวนับจำนวนครั้งที่กรอกผิด
- * - ผ่านแล้วตั้ง cookie แบบ httpOnly ที่เซ็นด้วย HMAC ผูกกับ user id — ตรวจได้โดยไม่ต้อง query ฐานข้อมูล
+ * - ระหว่างรอกรอกรหัสยังไม่มี session: มีแค่ cookie เซ็นด้วย HMAC ที่บอกว่ากำลังยืนยันบัญชีไหน
  */
 
 export const OTP_LENGTH = 6;
 export const OTP_TTL_MINUTES = 10;
 export const OTP_RESEND_SECONDS = 60;
 const OTP_MAX_ATTEMPTS = 5;
-
-const VERIFIED_COOKIE = "vx_otp";
-const VERIFIED_SECONDS = 60 * 60 * 24 * 30;
 
 export type OtpError = "otp_invalid" | "otp_expired" | "otp_locked";
 export type OtpSendResult =
@@ -48,36 +46,6 @@ function safeEqual(a: string, b: string): boolean {
   const x = Buffer.from(a);
   const y = Buffer.from(b);
   return x.length === y.length && timingSafeEqual(x, y);
-}
-
-/* ---------- cookie "ผ่าน OTP แล้ว" ---------- */
-
-export const hasOtpCookie = (): boolean => Boolean(cookies().get(VERIFIED_COOKIE)?.value);
-
-/** cookie ยังไม่หมดอายุและเซ็นไว้ให้ผู้ใช้คนนี้จริง */
-export function isOtpVerified(userId: string): boolean {
-  const [exp, sig] = (cookies().get(VERIFIED_COOKIE)?.value || "").split(".");
-  if (!exp || !sig || !(Number(exp) > Date.now())) return false;
-  try {
-    return safeEqual(sig, sign(`${userId}:${exp}`));
-  } catch {
-    return false;
-  }
-}
-
-export function markOtpVerified(userId: string): void {
-  const exp = String(Date.now() + VERIFIED_SECONDS * 1000);
-  cookies().set(VERIFIED_COOKIE, `${exp}.${sign(`${userId}:${exp}`)}`, {
-    path: "/",
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    maxAge: VERIFIED_SECONDS,
-  });
-}
-
-export function clearOtpVerified(): void {
-  cookies().delete(VERIFIED_COOKIE);
 }
 
 /* ---------- cookie "กำลังเข้าสู่ระบบด้วยอีเมล" ---------- */
@@ -116,12 +84,6 @@ export function clearPendingLogin(): void {
 }
 
 /* ---------- ออกรหัส / ตรวจรหัส ---------- */
-
-/** เข้าสู่ระบบรอบใหม่: ทิ้งรหัสเดิม ให้หน้ากรอกรหัสขอรหัสใหม่เอง */
-export async function discardOtp(userId: string): Promise<void> {
-  const { error } = await supabaseAdmin().from("login_otps").delete().eq("user_id", userId);
-  if (error) console.error("discardOtp:", error.message);
-}
 
 /**
  * สร้างรหัสใหม่แล้วส่งอีเมล — ขอซ้ำได้ทุก OTP_RESEND_SECONDS วินาที

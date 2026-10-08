@@ -3,13 +3,14 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createServerClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { hasOtpCookie, isOtpVerified, readPendingLogin } from "@/lib/otp";
+import { readPendingLogin } from "@/lib/otp";
 import { isSupabaseConfigured, supabaseAdmin } from "@/lib/supabase";
 import type { SessionUser, UserRole } from "@/lib/types";
 
 /**
  * การยืนยันตัวตนทั้งหมดทำที่ฝั่ง server
- * - เข้าสู่ระบบได้สองทาง: Google หรือกรอกอีเมล — ทั้งสองทางต้องผ่านรหัส OTP ทางอีเมล (lib/otp.ts) จึงนับว่าล็อกอิน
+ * - เข้าสู่ระบบได้สองทาง: Google (SSO เข้าได้ทันที) หรือกรอกอีเมลแล้วยืนยันด้วยรหัส OTP ทางอีเมล (lib/otp.ts)
+ * - session ของ Supabase ถูกออกให้หลังยืนยันตัวตนสำเร็จเท่านั้น: มี session ที่ใช้ได้ = ล็อกอินแล้ว
  * - session เก็บใน cookie แบบ httpOnly (เบราว์เซอร์ไม่ต้องโหลด Supabase SDK และ JavaScript อ่าน token ไม่ได้)
  * - ใช้ anon key สำหรับ session ของผู้ใช้ ส่วน secret key ใช้เฉพาะงานที่ตรวจสิทธิ์แล้ว
  */
@@ -74,7 +75,7 @@ export interface SessionIdentity {
   name: string;
 }
 
-/** ตรวจ token กับ Supabase Auth — ยังไม่ดูว่าผ่าน OTP หรือยัง */
+/** ตรวจ token กับ Supabase Auth */
 async function readIdentity(): Promise<SessionIdentity | null> {
   if (!isAuthConfigured || !hasSessionCookie()) return null;
   try {
@@ -89,16 +90,12 @@ async function readIdentity(): Promise<SessionIdentity | null> {
   }
 }
 
-export interface PendingLogin {
-  user: SessionIdentity;
-  /** google = มี session จาก Google แล้ว, email = ยังไม่มี session จนกว่าจะกรอกรหัสถูก */
-  via: "google" | "email";
-}
-
-/** กำลังรอกรอก OTP (หลัง Google หรือหลังกรอกอีเมล) — ใช้เฉพาะหน้าและ API ของขั้นกรอกรหัส */
-export async function getPendingLogin(): Promise<PendingLogin | null> {
-  const viaGoogle = await readIdentity();
-  if (viaGoogle) return isOtpVerified(viaGoogle.id) ? null : { user: viaGoogle, via: "google" };
+/**
+ * บัญชีที่กำลังรอกรอก OTP หลังกรอกอีเมล — ใช้เฉพาะหน้าและ API ของขั้นกรอกรหัส
+ * (เข้าด้วย Google ไม่ผ่านขั้นนี้ และผู้ที่ล็อกอินอยู่แล้วก็ไม่มีอะไรค้าง)
+ */
+export async function getPendingIdentity(): Promise<SessionIdentity | null> {
+  if (await readIdentity()) return null;
 
   const userId = readPendingLogin();
   if (!userId) return null;
@@ -108,11 +105,7 @@ export async function getPendingLogin(): Promise<PendingLogin | null> {
     .eq("id", userId)
     .retry(false)
     .maybeSingle<SessionIdentity>();
-  return row?.email ? { user: { id: row.id, email: row.email.toLowerCase(), name: row.name || "" }, via: "email" } : null;
-}
-
-export async function getPendingIdentity(): Promise<SessionIdentity | null> {
-  return (await getPendingLogin())?.user ?? null;
+  return row?.email ? { id: row.id, email: row.email.toLowerCase(), name: row.name || "" } : null;
 }
 
 /**
@@ -154,12 +147,8 @@ export async function createEmailSession(email: string): Promise<boolean> {
   return !verifyError;
 }
 
-/** ผู้ที่ล็อกอินครบสองขั้นแล้ว — คืนเฉพาะ id + อีเมล (เร็วกว่า getSessionUser หนึ่ง query) */
-export async function getSessionIdentity(): Promise<SessionIdentity | null> {
-  if (!hasOtpCookie()) return null; // ยังไม่ผ่าน OTP ไม่ต้องเสียเวลายิงไปถาม Supabase Auth
-  const user = await readIdentity();
-  return user && isOtpVerified(user.id) ? user : null;
-}
+/** ผู้ที่ล็อกอินอยู่ — คืนเฉพาะ id + อีเมล (เร็วกว่า getSessionUser หนึ่ง query) */
+export const getSessionIdentity = (): Promise<SessionIdentity | null> => readIdentity();
 
 /** ผู้ใช้ของ request นี้พร้อมสิทธิ์ — null เมื่อไม่ได้ล็อกอิน */
 export async function getSessionUser(): Promise<SessionUser | null> {
