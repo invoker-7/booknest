@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { Fragment } from "react";
 import type { ReactNode } from "react";
@@ -8,9 +7,10 @@ import { useLang } from "@/components/LangProvider";
 import { useStore } from "@/components/StoreProvider";
 import { useRequireLogin } from "@/components/AuthProvider";
 import ProductArt from "@/components/ProductArt";
+import ProductGallery from "@/components/ProductGallery";
 import { Bookmark, Cart, Check, Lock, Star, Library } from "@/components/Icons";
 import { Button, LinkButton, Meta, Price, Rating, ProductTile, PreviewBanner, Notice } from "@/components/ui";
-import { FAQ, discountOf, stamp } from "@/lib/catalog";
+import { FAQ, discountOf, stamp, imageOf } from "@/lib/catalog";
 import { pick } from "@/lib/format";
 import type { TKey } from "@/lib/i18n";
 import type { Product } from "@/lib/types";
@@ -137,9 +137,11 @@ export default function ProductView({ product: p, related, live, previews }: Pro
 
         <div className="pd-top">
           <div>
-            <div className="pd-plate">
-              <ProductArt p={p} no={p.productNo} label={catLabel} title={title} sizes="(max-width: 900px) 100vw, 640px" priority />
-            </div>
+            <ProductGallery
+              cover={<ProductArt p={p} no={p.productNo} label={catLabel} title={title} sizes="(max-width: 900px) 100vw, 640px" priority />}
+              coverSrc={imageOf(p)}
+              previews={previews}
+            />
           </div>
 
           <div className="pd-buy">
@@ -201,22 +203,7 @@ export default function ProductView({ product: p, related, live, previews }: Pro
           <LongText text={pick(p, "long", lang)} />
         </Doc>
 
-        {previews.length > 0 && (
-          <Doc no="02" label="Preview" title={t("previewTitle")}>
-            <p className="muted pv-note">{t("previewNote")}</p>
-            <ul className="pv-grid">
-              {previews.map((src, i) => (
-                <li key={src}>
-                  <a href={src} target="_blank" rel="noreferrer" aria-label={`${t("previewTitle")} ${i + 1}`}>
-                    <Image src={src} alt="" width={960} height={720} sizes="(max-width: 760px) 100vw, 460px" />
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </Doc>
-        )}
-
-        <Doc no={previews.length > 0 ? "03" : "02"} label="Reviews" title={t("reviewsTitle")}>
+        <Doc no="02" label="Reviews" title={t("reviewsTitle")}>
           {p.reviews > 0 ? (
             <>
               <div className="rev-summary">
@@ -235,7 +222,7 @@ export default function ProductView({ product: p, related, live, previews }: Pro
           )}
         </Doc>
 
-        <Doc no={previews.length > 0 ? "04" : "03"} label="FAQ" title={t("faq")}>
+        <Doc no="03" label="FAQ" title={t("faq")}>
           <div className="faq">
             {FAQ.map((k) => (
               <details key={k}>

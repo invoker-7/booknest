@@ -123,7 +123,6 @@ export const EN: Record<TKey, string> = {
   specPlatform: "Platform",
   deliveryVal: "Instant · Email link (24 h)",
   previewTitle: "Preview",
-  previewNote: "Images from the actual files you receive. Select an image to see it full size.",
   admPreviews: "Content previews",
   admPreviewsHint: "Screenshots or sample pages of the file you sell, shown on the product page. Up to 12 images, ordered by file name.",
   admPreviewAdd: "Add preview images",
